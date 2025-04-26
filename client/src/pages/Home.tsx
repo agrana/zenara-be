@@ -23,6 +23,16 @@ export default function Home() {
     setTheme(darkMode ? 'dark' : 'light');
   }, [darkMode, setTheme]);
 
+  // Direct handlers to open apps
+  const openPomodoro = () => setPomodoroVisible(true);
+  const openTaskList = () => setTaskListVisible(true);
+  const openScratchpad = () => setScratchpadVisible(true);
+  
+  // Direct handlers to close apps
+  const closePomodoro = () => setPomodoroVisible(false);
+  const closeTaskList = () => setTaskListVisible(false);
+  const closeScratchpad = () => setScratchpadVisible(false);
+
   return (
     <div className="relative min-h-screen flex flex-col justify-between">
       <BackgroundOverlay />
@@ -38,13 +48,13 @@ export default function Home() {
                 <AppButton 
                   emoji="🍅" 
                   label="Pomodoro Timer" 
-                  onClick={() => setPomodoroVisible(true)}
+                  onClick={openPomodoro}
                   isActive={false} 
                 />
                 <AppButton 
                   emoji="✓" 
                   label="Task List" 
-                  onClick={() => setTaskListVisible(true)}
+                  onClick={openTaskList}
                   isActive={false} 
                 />
               </div>
@@ -54,7 +64,7 @@ export default function Home() {
             {pomodoroVisible && (
               <div className="relative">
                 <button 
-                  onClick={() => setPomodoroVisible(false)}
+                  onClick={closePomodoro}
                   className="absolute top-3 right-3 z-10 text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                 >
                   Close
@@ -67,7 +77,7 @@ export default function Home() {
             {taskListVisible && (
               <div className="relative">
                 <button 
-                  onClick={() => setTaskListVisible(false)}
+                  onClick={closeTaskList}
                   className="absolute top-3 right-3 z-10 text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                 >
                   Close
@@ -85,7 +95,7 @@ export default function Home() {
                 <AppButton 
                   emoji="📝" 
                   label="Scratchpad" 
-                  onClick={() => setScratchpadVisible(true)}
+                  onClick={openScratchpad}
                   isActive={false} 
                 />
               </div>
@@ -95,7 +105,7 @@ export default function Home() {
             {scratchpadVisible && (
               <div className="relative">
                 <button 
-                  onClick={() => setScratchpadVisible(false)}
+                  onClick={closeScratchpad}
                   className="absolute top-3 right-3 z-10 text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                 >
                   Close

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -15,6 +14,11 @@ interface AppButtonProps {
 }
 
 export default function AppButton({ emoji, label, onClick, isActive = false }: AppButtonProps) {
+  // Direct click handler to ensure the onClick action runs immediately
+  const handleClick = () => {
+    onClick();
+  };
+  
   return (
     <TooltipProvider>
       <Tooltip>
@@ -22,7 +26,7 @@ export default function AppButton({ emoji, label, onClick, isActive = false }: A
           <Button
             variant={isActive ? "secondary" : "outline"}
             size="icon"
-            onClick={onClick}
+            onClick={handleClick}
             className={`
               w-12 h-12 rounded-full text-xl shadow-md 
               hover:shadow-lg transition-all duration-300
