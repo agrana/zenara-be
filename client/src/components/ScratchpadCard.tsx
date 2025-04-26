@@ -101,8 +101,10 @@ export default function ScratchpadCard() {
         
         <CollapsibleContent>
           <CardContent className="bg-white/80 dark:bg-slate-800/80 p-6">
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex space-x-2">
+            {/* Responsive toolbar with flex-wrap to ensure visibility on all screen sizes */}
+            <div className="flex flex-wrap gap-2 justify-between items-center mb-4">
+              {/* Left side - editing tools */}
+              <div className="flex flex-wrap gap-1">
                 <Toggle 
                   pressed={activeTab === "write"} 
                   onPressedChange={() => setActiveTab("write")}
@@ -158,12 +160,13 @@ export default function ScratchpadCard() {
                 )}
               </div>
               
-              <div className="flex items-center space-x-2">
+              {/* Right side - format and actions */}
+              <div className="flex flex-wrap gap-1 items-center">
                 <Select 
                   value={format} 
                   onValueChange={(value) => applyFormatTemplate(value as FormatType)}
                 >
-                  <SelectTrigger className="text-sm w-auto">
+                  <SelectTrigger className="text-sm">
                     <SelectValue placeholder="Format: Default" />
                   </SelectTrigger>
                   <SelectContent>
@@ -178,7 +181,6 @@ export default function ScratchpadCard() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="flex items-center"
                   onClick={() => {
                     // Auto-save is already implemented via Zustand persist
                     // This provides visual feedback that content is saved
@@ -198,7 +200,6 @@ export default function ScratchpadCard() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex items-center"
                     onClick={() => processContent()}
                     disabled={isProcessing || !content}
                   >
