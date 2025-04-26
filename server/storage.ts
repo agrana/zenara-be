@@ -100,24 +100,24 @@ export class DatabaseStorage implements IStorage {
 
   // Pomodoro operations
   async getPomodoroSessions(userId?: number, taskId?: number): Promise<PomodoroSession[]> {
+    // Get all sessions and filter in-memory
+    const allSessions = await db.select().from(pomodoroSessions);
+    
     if (userId && taskId) {
-      return db
-        .select()
-        .from(pomodoroSessions)
-        .where(eq(pomodoroSessions.userId, userId))
-        .andWhere(eq(pomodoroSessions.taskId, taskId));
+      return allSessions.filter(session => 
+        session.userId === userId && session.taskId === taskId
+      );
     } else if (userId) {
-      return db
-        .select()
-        .from(pomodoroSessions)
-        .where(eq(pomodoroSessions.userId, userId));
+      return allSessions.filter(session => 
+        session.userId === userId
+      );
     } else if (taskId) {
-      return db
-        .select()
-        .from(pomodoroSessions)
-        .where(eq(pomodoroSessions.taskId, taskId));
+      return allSessions.filter(session => 
+        session.taskId === taskId
+      );
     }
-    return db.select().from(pomodoroSessions);
+    
+    return allSessions;
   }
 
   async createPomodoroSession(session: InsertPomodoroSession): Promise<PomodoroSession> {
@@ -182,15 +182,17 @@ export class DatabaseStorage implements IStorage {
 
   async createOrUpdateSettings(data: InsertSettings): Promise<Settings> {
     // Check if settings exist
-    const existing = await this.getSettings(data.userId);
-    
-    if (existing) {
-      const [updated] = await db
-        .update(settings)
-        .set(data)
-        .where(eq(settings.id, existing.id))
-        .returning();
-      return updated;
+    if (data.userId) {
+      const existing = await this.getSettings(data.userId);
+      
+      if (existing) {
+        const [updated] = await db
+          .update(settings)
+          .set(data)
+          .where(eq(settings.id, existing.id))
+          .returning();
+        return updated;
+      }
     }
     
     const [newSettings] = await db
