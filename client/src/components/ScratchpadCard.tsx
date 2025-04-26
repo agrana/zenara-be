@@ -12,7 +12,7 @@ import { Loader2 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 
 export default function ScratchpadCard() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true); // Start open by default
   const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
   
   const {

@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 
 export default function PomodoroCard() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true); // Start open by default
   const [isSelectTaskOpen, setIsSelectTaskOpen] = useState(false);
   
   const {
