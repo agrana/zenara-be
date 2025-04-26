@@ -158,7 +158,7 @@ export default function ScratchpadCard() {
                 )}
               </div>
               
-              <div className="flex items-center">
+              <div className="flex items-center space-x-2">
                 <Select 
                   value={format} 
                   onValueChange={(value) => applyFormatTemplate(value as FormatType)}
@@ -175,11 +175,30 @@ export default function ScratchpadCard() {
                   </SelectContent>
                 </Select>
                 
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex items-center"
+                  onClick={() => {
+                    // Auto-save is already implemented via Zustand persist
+                    // This provides visual feedback that content is saved
+                    const toast = document.createElement('div');
+                    toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg';
+                    toast.textContent = 'Saved!';
+                    document.body.appendChild(toast);
+                    setTimeout(() => {
+                      document.body.removeChild(toast);
+                    }, 2000);
+                  }}
+                >
+                  Save
+                </Button>
+                
                 {activeTab === "write" && (
                   <Button
                     size="sm"
                     variant="outline"
-                    className="ml-2 flex items-center"
+                    className="flex items-center"
                     onClick={() => processContent()}
                     disabled={isProcessing || !content}
                   >
