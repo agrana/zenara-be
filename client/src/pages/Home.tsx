@@ -39,80 +39,82 @@ export default function Home() {
       <Header />
       
       <main className="flex-grow flex items-center justify-center w-full">
-        <div className="w-full max-w-7xl px-4 flex flex-col md:flex-row items-start gap-6">
-          {/* Left side - Pomodoro and Tasks */}
-          <div className="w-full md:w-1/3 flex flex-col space-y-6">
-            {/* App buttons when cards are not visible */}
-            {!pomodoroVisible && !taskListVisible && (
-              <div className="flex space-x-4 mb-4">
-                <AppButton 
-                  emoji="🍅" 
-                  label="Pomodoro Timer" 
-                  onClick={openPomodoro}
-                  isActive={false} 
-                />
-                <AppButton 
-                  emoji="✓" 
-                  label="Task List" 
-                  onClick={openTaskList}
-                  isActive={false} 
-                />
-              </div>
-            )}
-            
-            {/* Pomodoro card */}
-            {pomodoroVisible && (
-              <div className="relative">
-                <button 
-                  onClick={closePomodoro}
-                  className="absolute top-3 right-3 z-10 text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                >
-                  Close
-                </button>
-                <PomodoroCard />
-              </div>
-            )}
-            
-            {/* Task list card */}
-            {taskListVisible && (
-              <div className="relative">
-                <button 
-                  onClick={closeTaskList}
-                  className="absolute top-3 right-3 z-10 text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                >
-                  Close
-                </button>
-                <TaskListCard />
-              </div>
-            )}
-          </div>
+        <div className="w-full max-w-7xl px-4 relative">
+          {/* Scratchpad button in top right when card is not visible */}
+          {!scratchpadVisible && (
+            <div className="absolute top-0 right-8 md:right-16">
+              <AppButton 
+                emoji="📝" 
+                label="Scratchpad" 
+                onClick={openScratchpad}
+                isActive={false} 
+              />
+            </div>
+          )}
           
-          {/* Right side - Scratchpad */}
-          <div className="w-full md:w-2/3 flex flex-col">
-            {/* Scratchpad button when card is not visible */}
-            {!scratchpadVisible && (
-              <div className="flex justify-center mb-4">
-                <AppButton 
-                  emoji="📝" 
-                  label="Scratchpad" 
-                  onClick={openScratchpad}
-                  isActive={false} 
-                />
-              </div>
-            )}
+          <div className="flex flex-col md:flex-row items-start gap-6 mt-16">
+            {/* Left side - Pomodoro and Tasks */}
+            <div className="w-full md:w-1/3 flex flex-col space-y-6">
+              {/* App buttons when cards are not visible - stacked vertically */}
+              {!pomodoroVisible && !taskListVisible && (
+                <div className="flex flex-col space-y-4 mb-4">
+                  <AppButton 
+                    emoji="🍅" 
+                    label="Pomodoro Timer" 
+                    onClick={openPomodoro}
+                    isActive={false} 
+                  />
+                  <AppButton 
+                    emoji="✓" 
+                    label="Task List" 
+                    onClick={openTaskList}
+                    isActive={false} 
+                  />
+                </div>
+              )}
+              
+              {/* Pomodoro card */}
+              {pomodoroVisible && (
+                <div className="relative">
+                  <button 
+                    onClick={closePomodoro}
+                    className="absolute top-3 right-3 z-10 text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                  >
+                    Close
+                  </button>
+                  <PomodoroCard />
+                </div>
+              )}
+              
+              {/* Task list card */}
+              {taskListVisible && (
+                <div className="relative">
+                  <button 
+                    onClick={closeTaskList}
+                    className="absolute top-3 right-3 z-10 text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                  >
+                    Close
+                  </button>
+                  <TaskListCard />
+                </div>
+              )}
+            </div>
             
-            {/* Scratchpad card */}
-            {scratchpadVisible && (
-              <div className="relative">
-                <button 
-                  onClick={closeScratchpad}
-                  className="absolute top-3 right-3 z-10 text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                >
-                  Close
-                </button>
-                <ScratchpadCard />
-              </div>
-            )}
+            {/* Right side - Scratchpad */}
+            <div className="w-full md:w-2/3 flex flex-col">
+              {/* Scratchpad card */}
+              {scratchpadVisible && (
+                <div className="relative">
+                  <button 
+                    onClick={closeScratchpad}
+                    className="absolute top-3 right-3 z-10 text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                  >
+                    Close
+                  </button>
+                  <ScratchpadCard />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>
