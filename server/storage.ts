@@ -1,13 +1,11 @@
 import { 
-  users, tasks, pomodoroSessions, scratchpads, settings,
   type User, type InsertUser,
   type Task, type InsertTask,
   type PomodoroSession, type InsertPomodoroSession,
   type Scratchpad, type InsertScratchpad,
   type Settings, type InsertSettings
 } from "@shared/schema";
-import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { supabase } from "./db";
 
 export interface IStorage {
   // User operations
@@ -39,166 +37,222 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) throw error;
+    return data || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('username', username)
+      .single();
+    
+    if (error) throw error;
+    return data || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(insertUser)
-      .returning();
-    return user;
+    const { data, error } = await supabase
+      .from('users')
+      .insert(insertUser)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
   }
 
   // Task operations
   async getTasks(userId?: number): Promise<Task[]> {
+    let query = supabase
+      .from('tasks')
+      .select('*');
+    
     if (userId) {
-      return db.select().from(tasks).where(eq(tasks.userId, userId));
+      query = query.eq('userId', userId);
     }
-    return db.select().from(tasks);
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   }
 
   async getTask(id: number): Promise<Task | undefined> {
-    const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
-    return task || undefined;
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) throw error;
+    return data || undefined;
   }
 
   async createTask(task: InsertTask): Promise<Task> {
-    const [newTask] = await db
-      .insert(tasks)
-      .values(task)
-      .returning();
-    return newTask;
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert(task)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
   }
 
   async updateTask(id: number, data: Partial<Task>): Promise<Task | undefined> {
-    const [updatedTask] = await db
-      .update(tasks)
-      .set({
-        ...data,
-        // If task is being marked as completed, set completedAt
-        ...(data.completed && !data.completedAt ? { completedAt: new Date() } : {})
-      })
-      .where(eq(tasks.id, id))
-      .returning();
+    const updateData = {
+      ...data,
+      ...(data.completed && !data.completedAt ? { completedAt: new Date().toISOString() } : {})
+    };
+
+    const { data: updatedTask, error } = await supabase
+      .from('tasks')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
     return updatedTask || undefined;
   }
 
   async deleteTask(id: number): Promise<boolean> {
-    const [deletedTask] = await db
-      .delete(tasks)
-      .where(eq(tasks.id, id))
-      .returning();
-    return !!deletedTask;
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    return true;
   }
 
   // Pomodoro operations
   async getPomodoroSessions(userId?: number, taskId?: number): Promise<PomodoroSession[]> {
-    // Get all sessions and filter in-memory
-    const allSessions = await db.select().from(pomodoroSessions);
+    let query = supabase
+      .from('pomodoro_sessions')
+      .select('*');
     
     if (userId && taskId) {
-      return allSessions.filter(session => 
-        session.userId === userId && session.taskId === taskId
-      );
+      query = query.eq('userId', userId).eq('taskId', taskId);
     } else if (userId) {
-      return allSessions.filter(session => 
-        session.userId === userId
-      );
+      query = query.eq('userId', userId);
     } else if (taskId) {
-      return allSessions.filter(session => 
-        session.taskId === taskId
-      );
+      query = query.eq('taskId', taskId);
     }
     
-    return allSessions;
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   }
 
   async createPomodoroSession(session: InsertPomodoroSession): Promise<PomodoroSession> {
-    const [newSession] = await db
-      .insert(pomodoroSessions)
-      .values(session)
-      .returning();
-    return newSession;
+    const { data, error } = await supabase
+      .from('pomodoro_sessions')
+      .insert(session)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
   }
 
   async updatePomodoroSession(id: number, data: Partial<PomodoroSession>): Promise<PomodoroSession | undefined> {
-    const [updatedSession] = await db
-      .update(pomodoroSessions)
-      .set(data)
-      .where(eq(pomodoroSessions.id, id))
-      .returning();
+    const { data: updatedSession, error } = await supabase
+      .from('pomodoro_sessions')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
     return updatedSession || undefined;
   }
 
   // Scratchpad operations
   async getScratchpad(userId: number): Promise<Scratchpad | undefined> {
-    const [pad] = await db
-      .select()
-      .from(scratchpads)
-      .where(eq(scratchpads.userId, userId));
-    return pad || undefined;
+    const { data, error } = await supabase
+      .from('scratchpads')
+      .select('*')
+      .eq('userId', userId)
+      .single();
+    
+    if (error) throw error;
+    return data || undefined;
   }
 
   async createOrUpdateScratchpad(data: InsertScratchpad): Promise<Scratchpad> {
-    // Check if scratchpad exists
     if (data.userId) {
       const existing = await this.getScratchpad(data.userId);
       
       if (existing) {
-        const [updated] = await db
-          .update(scratchpads)
-          .set({
+        const { data: updated, error } = await supabase
+          .from('scratchpads')
+          .update({
             ...data,
-            updatedAt: new Date()
+            updatedAt: new Date().toISOString()
           })
-          .where(eq(scratchpads.id, existing.id))
-          .returning();
+          .eq('id', existing.id)
+          .select()
+          .single();
+        
+        if (error) throw error;
         return updated;
       }
     }
     
-    const [newPad] = await db
-      .insert(scratchpads)
-      .values(data)
-      .returning();
+    const { data: newPad, error } = await supabase
+      .from('scratchpads')
+      .insert(data)
+      .select()
+      .single();
+    
+    if (error) throw error;
     return newPad;
   }
 
   // Settings operations
   async getSettings(userId: number): Promise<Settings | undefined> {
-    const [userSettings] = await db
-      .select()
-      .from(settings)
-      .where(eq(settings.userId, userId));
-    return userSettings || undefined;
+    const { data, error } = await supabase
+      .from('settings')
+      .select('*')
+      .eq('userId', userId)
+      .single();
+    
+    if (error) throw error;
+    return data || undefined;
   }
 
   async createOrUpdateSettings(data: InsertSettings): Promise<Settings> {
-    // Check if settings exist
     if (data.userId) {
       const existing = await this.getSettings(data.userId);
       
       if (existing) {
-        const [updated] = await db
-          .update(settings)
-          .set(data)
-          .where(eq(settings.id, existing.id))
-          .returning();
+        const { data: updated, error } = await supabase
+          .from('settings')
+          .update(data)
+          .eq('id', existing.id)
+          .select()
+          .single();
+        
+        if (error) throw error;
         return updated;
       }
     }
     
-    const [newSettings] = await db
-      .insert(settings)
-      .values(data)
-      .returning();
+    const { data: newSettings, error } = await supabase
+      .from('settings')
+      .insert(data)
+      .select()
+      .single();
+    
+    if (error) throw error;
     return newSettings;
   }
 }

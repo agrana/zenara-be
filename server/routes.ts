@@ -3,12 +3,38 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
 import { z } from "zod";
-import { insertTaskSchema, insertPomodoroSessionSchema, insertScratchpadSchema, insertSettingsSchema } from "@shared/schema";
+import type { InsertTask, InsertPomodoroSession, InsertScratchpad, InsertSettings } from "@shared/schema";
 
 // Initialize OpenAI client with API key fallback
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "" 
 });
+
+// Define Zod schemas for validation
+const insertTaskSchema = z.object({
+  userId: z.number(),
+  title: z.string(),
+  description: z.string().optional(),
+  completed: z.boolean().optional()
+}) satisfies z.ZodType<InsertTask>;
+
+const insertPomodoroSessionSchema = z.object({
+  userId: z.number(),
+  taskId: z.number().optional(),
+  duration: z.number(),
+  completed: z.boolean().optional()
+}) satisfies z.ZodType<InsertPomodoroSession>;
+
+const insertScratchpadSchema = z.object({
+  userId: z.number(),
+  content: z.string()
+}) satisfies z.ZodType<InsertScratchpad>;
+
+const insertSettingsSchema = z.object({
+  userId: z.number(),
+  theme: z.string().optional(),
+  notifications: z.boolean().optional()
+}) satisfies z.ZodType<InsertSettings>;
 
 // Helper function to validate request body
 function validateBody<T>(schema: z.ZodType<T>, body: any): { success: true, data: T } | { success: false, error: string } {

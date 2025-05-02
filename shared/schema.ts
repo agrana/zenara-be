@@ -1,110 +1,76 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
+// Types for the database schema
+export interface User {
+  id: number;
+  username: string;
+  password: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
-// User model (basic schema for future extension)
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export interface InsertUser {
+  username: string;
+  password: string;
+}
 
-// Tasks model
-export const tasks = pgTable("tasks", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
-  title: text("title").notNull(),
-  completed: boolean("completed").notNull().default(false),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  completedAt: timestamp("completed_at"),
-});
+export interface Task {
+  id: number;
+  userId: number;
+  title: string;
+  description?: string;
+  completed: boolean;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
-// Pomodoro sessions model
-export const pomodoroSessions = pgTable("pomodoro_sessions", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
-  taskId: integer("task_id").references(() => tasks.id),
-  startTime: timestamp("start_time").notNull(),
-  endTime: timestamp("end_time"),
-  durationSeconds: integer("duration_seconds").notNull(),
-  completed: boolean("completed").notNull().default(false),
-});
+export interface InsertTask {
+  userId: number;
+  title: string;
+  description?: string;
+  completed?: boolean;
+}
 
-// Scratchpad model
-export const scratchpads = pgTable("scratchpads", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
-  content: text("content").notNull(),
-  format: text("format").notNull().default("default"),
-  processedContent: text("processed_content"),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+export interface PomodoroSession {
+  id: number;
+  userId: number;
+  taskId?: number;
+  duration: number;
+  completed: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
-// Settings model
-export const settings = pgTable("settings", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull().unique(),
-  darkMode: boolean("dark_mode").notNull().default(false),
-  backgroundRotation: text("background_rotation").notNull().default("daily"),
-  selectedCategory: text("selected_category"),
-  quoteRotation: text("quote_rotation").notNull().default("daily"),
-  workDuration: integer("work_duration").notNull().default(25),
-  breakDuration: integer("break_duration").notNull().default(5),
-  backgroundSound: text("background_sound").notNull().default("none"),
-  alertSound: text("alert_sound").notNull().default("bell"),
-  dailyGoal: integer("daily_goal").notNull().default(4),
-});
+export interface InsertPomodoroSession {
+  userId: number;
+  taskId?: number;
+  duration: number;
+  completed?: boolean;
+}
 
-// Zod schemas for insert operations
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
+export interface Scratchpad {
+  id: number;
+  userId: number;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
-export const insertTaskSchema = createInsertSchema(tasks).pick({
-  userId: true,
-  title: true,
-});
+export interface InsertScratchpad {
+  userId: number;
+  content: string;
+}
 
-export const insertPomodoroSessionSchema = createInsertSchema(pomodoroSessions).pick({
-  userId: true,
-  taskId: true,
-  startTime: true,
-  durationSeconds: true,
-});
+export interface Settings {
+  id: number;
+  userId: number;
+  theme: string;
+  notifications: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
-export const insertScratchpadSchema = createInsertSchema(scratchpads).pick({
-  userId: true,
-  content: true,
-  format: true,
-});
-
-export const insertSettingsSchema = createInsertSchema(settings).pick({
-  userId: true,
-  darkMode: true,
-  backgroundRotation: true,
-  selectedCategory: true,
-  quoteRotation: true,
-  workDuration: true,
-  breakDuration: true,
-  backgroundSound: true,
-  alertSound: true,
-  dailyGoal: true,
-});
-
-// Types
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-
-export type InsertTask = z.infer<typeof insertTaskSchema>;
-export type Task = typeof tasks.$inferSelect;
-
-export type InsertPomodoroSession = z.infer<typeof insertPomodoroSessionSchema>;
-export type PomodoroSession = typeof pomodoroSessions.$inferSelect;
-
-export type InsertScratchpad = z.infer<typeof insertScratchpadSchema>;
-export type Scratchpad = typeof scratchpads.$inferSelect;
-
-export type InsertSettings = z.infer<typeof insertSettingsSchema>;
-export type Settings = typeof settings.$inferSelect;
+export interface InsertSettings {
+  userId: number;
+  theme?: string;
+  notifications?: boolean;
+}
