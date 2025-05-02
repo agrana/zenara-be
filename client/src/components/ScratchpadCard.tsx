@@ -1,19 +1,20 @@
 import { useState, useEffect } from "react";
 import { useScratchpadStore, type FormatType } from "@/store/scratchpadStore";
+import { useAppStore } from "@/store/appStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Toggle } from "@/components/ui/toggle";
-import { ChevronDown, ChevronUp, AlignLeft, AlignCenter, FileText, CheckSquare, Code, Wand2 } from "lucide-react";
+import { ChevronDown, ChevronUp, FileText, CheckSquare, Code, Wand2 } from "lucide-react";
 import { Loader2 } from "lucide-react";
-import ReactMarkdown from 'react-markdown';
+import MDEditor from '@uiw/react-md-editor';
+import '@uiw/react-md-editor/markdown-editor.css';
+import '@uiw/react-markdown-preview/markdown.css';
 
 export default function ScratchpadCard() {
   const [isOpen, setIsOpen] = useState(true); // Start open by default
-  const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
+  const { darkMode } = useAppStore();
   
   const {
     content,
@@ -36,47 +37,6 @@ export default function ScratchpadCard() {
       // Just change the format without altering the content
       setFormat(formatType);
     }
-  };
-  
-  const insertMarkdownSyntax = (syntax: string, selection?: [number, number]) => {
-    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
-    if (!textarea) return;
-    
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-    
-    let result;
-    switch (syntax) {
-      case 'heading':
-        result = text.substring(0, start) + '# ' + text.substring(start);
-        break;
-      case 'bullet':
-        result = text.substring(0, start) + '- ' + text.substring(start);
-        break;
-      case 'checkbox':
-        result = text.substring(0, start) + '- [ ] ' + text.substring(start);
-        break;
-      case 'code':
-        result = text.substring(0, start) + '```\n' + text.substring(start, end) + '\n```' + text.substring(end);
-        break;
-      default:
-        return;
-    }
-    
-    setContent(result);
-    
-    // Re-focus the textarea
-    setTimeout(() => {
-      textarea.focus();
-      if (syntax === 'code') {
-        textarea.selectionStart = start + 4;
-        textarea.selectionEnd = end + 4;
-      } else {
-        const offset = syntax === 'heading' ? 2 : (syntax === 'checkbox' ? 6 : 2);
-        textarea.selectionStart = textarea.selectionEnd = start + offset;
-      }
-    }, 0);
   };
   
   return (
@@ -106,58 +66,49 @@ export default function ScratchpadCard() {
               {/* Left side - editing tools */}
               <div className="flex flex-wrap gap-1">
                 <Toggle 
-                  pressed={activeTab === "write"} 
-                  onPressedChange={() => setActiveTab("write")}
-                  aria-label="Switch to write mode"
+                  pressed={false}
+                  onPressedChange={() => {
+                    const newContent = content + '\n# ';
+                    setContent(newContent);
+                  }}
+                  aria-label="Insert heading"
+                  className="p-2 text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary"
+                >
+                  <span className="font-bold">H</span>
+                </Toggle>
+                <Toggle
+                  pressed={false}
+                  onPressedChange={() => {
+                    const newContent = content + '\n- ';
+                    setContent(newContent);
+                  }}
+                  aria-label="Insert bullet point"
                   className="p-2 text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary"
                 >
                   <FileText className="h-5 w-5" />
                 </Toggle>
-                <Toggle 
-                  pressed={activeTab === "preview"} 
-                  onPressedChange={() => setActiveTab("preview")}
-                  aria-label="Switch to preview mode"
+                <Toggle
+                  pressed={false}
+                  onPressedChange={() => {
+                    const newContent = content + '\n- [ ] ';
+                    setContent(newContent);
+                  }}
+                  aria-label="Insert checkbox"
                   className="p-2 text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary"
                 >
-                  <AlignLeft className="h-5 w-5" />
+                  <CheckSquare className="h-5 w-5" />
                 </Toggle>
-                
-                {activeTab === "write" && (
-                  <>
-                    <Toggle
-                      pressed={false}
-                      onPressedChange={() => insertMarkdownSyntax('heading')}
-                      aria-label="Insert heading"
-                      className="p-2 text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary"
-                    >
-                      <span className="font-bold">H</span>
-                    </Toggle>
-                    <Toggle
-                      pressed={false}
-                      onPressedChange={() => insertMarkdownSyntax('bullet')}
-                      aria-label="Insert bullet point"
-                      className="p-2 text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary"
-                    >
-                      <AlignCenter className="h-5 w-5" />
-                    </Toggle>
-                    <Toggle
-                      pressed={false}
-                      onPressedChange={() => insertMarkdownSyntax('checkbox')}
-                      aria-label="Insert checkbox"
-                      className="p-2 text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary"
-                    >
-                      <CheckSquare className="h-5 w-5" />
-                    </Toggle>
-                    <Toggle
-                      pressed={false}
-                      onPressedChange={() => insertMarkdownSyntax('code')}
-                      aria-label="Insert code block"
-                      className="p-2 text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary"
-                    >
-                      <Code className="h-5 w-5" />
-                    </Toggle>
-                  </>
-                )}
+                <Toggle
+                  pressed={false}
+                  onPressedChange={() => {
+                    const newContent = content + '\n```\n\n```';
+                    setContent(newContent);
+                  }}
+                  aria-label="Insert code block"
+                  className="p-2 text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary"
+                >
+                  <Code className="h-5 w-5" />
+                </Toggle>
               </div>
               
               {/* Right side - format and actions */}
@@ -196,54 +147,33 @@ export default function ScratchpadCard() {
                   Save
                 </Button>
                 
-                {activeTab === "write" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => processContent()}
-                    disabled={isProcessing || !content}
-                  >
-                    {isProcessing ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                    ) : (
-                      <Wand2 className="h-4 w-4 mr-1" />
-                    )}
-                    Process
-                  </Button>
-                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => processContent()}
+                  disabled={isProcessing || !content}
+                >
+                  {isProcessing ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  ) : (
+                    <Wand2 className="h-4 w-4 mr-1" />
+                  )}
+                  Process
+                </Button>
               </div>
             </div>
             
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "write" | "preview")}>
-              <TabsContent value="write" className="mt-0">
-                <Textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  className="flex-grow bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg p-4 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none h-[400px]"
-                  placeholder="Write your thoughts here...
-
-You can use markdown:
-# Heading
-- Bullet points
-- [ ] Tasks
-- [x] Completed tasks
-
-```code
-console.log('Hello world');
-```"
-                />
-              </TabsContent>
-              
-              <TabsContent value="preview" className="mt-0">
-                <div className="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg p-4 h-[400px] overflow-y-auto prose dark:prose-invert max-w-none">
-                  {processedContent ? (
-                    <ReactMarkdown>{processedContent}</ReactMarkdown>
-                  ) : (
-                    <ReactMarkdown>{content}</ReactMarkdown>
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
+            <div className="h-[400px] overflow-hidden rounded-lg border border-slate-300 dark:border-slate-600">
+              <MDEditor
+                value={content}
+                onChange={(value) => setContent(value || '')}
+                preview={processedContent ? 'preview' : 'live'}
+                height={400}
+                visibleDragbar={false}
+                className="bg-white dark:bg-slate-700"
+                data-color-mode={darkMode ? 'dark' : 'light'}
+              />
+            </div>
           </CardContent>
         </CollapsibleContent>
       </Collapsible>
