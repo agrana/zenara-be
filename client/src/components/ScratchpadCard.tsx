@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 import MDEditor from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
 import '@uiw/react-markdown-preview/markdown.css';
+import styles from './ScratchpadCard.module.css';
 
 export default function ScratchpadCard() {
   const [isOpen, setIsOpen] = useState(true); // Start open by default
@@ -62,112 +63,61 @@ export default function ScratchpadCard() {
         <CollapsibleContent>
           <CardContent className="bg-white/80 dark:bg-slate-800/80 p-6">
             {/* Responsive toolbar with flex-wrap to ensure visibility on all screen sizes */}
-            <div className="flex flex-wrap gap-2 justify-between items-center mb-4">
-              {/* Left side - editing tools */}
-              <div className="flex flex-wrap gap-1">
-                <Toggle 
-                  pressed={false}
-                  onPressedChange={() => {
-                    const newContent = content + '\n# ';
-                    setContent(newContent);
-                  }}
-                  aria-label="Insert heading"
-                  className="p-2 text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary"
-                >
-                  <span className="font-bold">H</span>
-                </Toggle>
-                <Toggle
-                  pressed={false}
-                  onPressedChange={() => {
-                    const newContent = content + '\n- ';
-                    setContent(newContent);
-                  }}
-                  aria-label="Insert bullet point"
-                  className="p-2 text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary"
-                >
-                  <FileText className="h-5 w-5" />
-                </Toggle>
-                <Toggle
-                  pressed={false}
-                  onPressedChange={() => {
-                    const newContent = content + '\n- [ ] ';
-                    setContent(newContent);
-                  }}
-                  aria-label="Insert checkbox"
-                  className="p-2 text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary"
-                >
-                  <CheckSquare className="h-5 w-5" />
-                </Toggle>
-                <Toggle
-                  pressed={false}
-                  onPressedChange={() => {
-                    const newContent = content + '\n```\n\n```';
-                    setContent(newContent);
-                  }}
-                  aria-label="Insert code block"
-                  className="p-2 text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary"
-                >
-                  <Code className="h-5 w-5" />
-                </Toggle>
-              </div>
+            <div className="flex flex-wrap gap-1 items-center">
+              <Select 
+                value={format} 
+                onValueChange={(value) => applyFormatTemplate(value as FormatType)}
+              >
+                <SelectTrigger className="text-sm">
+                  <SelectValue placeholder="Format: Default" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">Format: Default</SelectItem>
+                  <SelectItem value="diary">Format: Diary</SelectItem>
+                  <SelectItem value="meeting">Format: Meeting Notes</SelectItem>
+                  <SelectItem value="braindump">Format: Brain Dump</SelectItem>
+                  <SelectItem value="brainstorm">Format: Brainstorm</SelectItem>
+                </SelectContent>
+              </Select>
               
-              {/* Right side - format and actions */}
-              <div className="flex flex-wrap gap-1 items-center">
-                <Select 
-                  value={format} 
-                  onValueChange={(value) => applyFormatTemplate(value as FormatType)}
-                >
-                  <SelectTrigger className="text-sm">
-                    <SelectValue placeholder="Format: Default" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">Format: Default</SelectItem>
-                    <SelectItem value="diary">Format: Diary</SelectItem>
-                    <SelectItem value="meeting">Format: Meeting Notes</SelectItem>
-                    <SelectItem value="braindump">Format: Brain Dump</SelectItem>
-                    <SelectItem value="brainstorm">Format: Brainstorm</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    // Auto-save is already implemented via Zustand persist
-                    // This provides visual feedback that content is saved
-                    const toast = document.createElement('div');
-                    toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg';
-                    toast.textContent = 'Saved!';
-                    document.body.appendChild(toast);
-                    setTimeout(() => {
-                      document.body.removeChild(toast);
-                    }, 2000);
-                  }}
-                >
-                  Save
-                </Button>
-                
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => processContent()}
-                  disabled={isProcessing || !content}
-                >
-                  {isProcessing ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                  ) : (
-                    <Wand2 className="h-4 w-4 mr-1" />
-                  )}
-                  Process
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  // Auto-save is already implemented via Zustand persist
+                  // This provides visual feedback that content is saved
+                  const toast = document.createElement('div');
+                  toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg';
+                  toast.textContent = 'Saved!';
+                  document.body.appendChild(toast);
+                  setTimeout(() => {
+                    document.body.removeChild(toast);
+                  }, 2000);
+                }}
+              >
+                Save
+              </Button>
+              
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => processContent()}
+                disabled={isProcessing || !content}
+              >
+                {isProcessing ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                ) : (
+                  <Wand2 className="h-4 w-4 mr-1" />
+                )}
+                Process
+              </Button>
             </div>
             
-            <div className="h-[400px] overflow-hidden rounded-lg border border-slate-300 dark:border-slate-600">
+            <div className={`h-[400px] overflow-hidden rounded-lg border border-slate-300 dark:border-slate-600 ${styles.mdEditorToolbar}`}>
               <MDEditor
                 value={content}
                 onChange={(value) => setContent(value || '')}
-                preview={processedContent ? 'preview' : 'live'}
+                preview="edit"
                 height={400}
                 visibleDragbar={false}
                 className="bg-white dark:bg-slate-700"
