@@ -50,6 +50,11 @@ function validateBody<T>(schema: z.ZodType<T>, body: any): { success: true, data
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok' });
+  });
+
   // API endpoint for processing scratchpad content with LLM
   app.post("/api/process-content", async (req, res) => {
     try {
