@@ -2,15 +2,12 @@ import { Howl } from "howler";
 
 export type SoundType = 
   | "none" 
-  | "brown-noise" 
-  | "white-noise" 
-  | "pink-noise" 
-  | "rain" 
-  | "storm" 
-  | "ocean" 
-  | "clock";
+  | "crowd-talking" 
+  | "ocean-wave-1" 
+  | "ocean-wave-2" 
+  | "rain-07";
 
-export type AlertSound = "bell" | "chime" | "gentle" | "digital";
+export type AlertSound = "bell-ring-01" | "bell-ringing-03a" | "bell-ringing-05";
 
 interface Sound {
   howl: Howl | null;
@@ -21,84 +18,107 @@ interface Sound {
 class AudioManager {
   private sounds: Record<SoundType, Sound> = {
     "none": { howl: null, url: "" },
-    "brown-noise": { 
+    "crowd-talking": { 
       howl: null, 
-      url: "/sounds/brown-noise.mp3", 
+      url: "/sounds/crowd-talking-2.mp3", 
       loop: true 
     },
-    "white-noise": { 
+    "ocean-wave-1": { 
       howl: null, 
-      url: "/sounds/white-noise.mp3", 
+      url: "/sounds/ocean-wave-1.mp3", 
       loop: true 
     },
-    "pink-noise": { 
+    "ocean-wave-2": { 
       howl: null, 
-      url: "/sounds/pink-noise.mp3", 
+      url: "/sounds/ocean-wave-2.mp3", 
       loop: true 
     },
-    "rain": { 
+    "rain-07": { 
       howl: null, 
-      url: "/sounds/rain.mp3", 
-      loop: true 
-    },
-    "storm": { 
-      howl: null, 
-      url: "/sounds/storm.mp3", 
-      loop: true 
-    },
-    "ocean": { 
-      howl: null, 
-      url: "/sounds/ocean.mp3", 
-      loop: true 
-    },
-    "clock": { 
-      howl: null, 
-      url: "/sounds/clock.mp3", 
+      url: "/sounds/rain-07.mp3", 
       loop: true 
     }
   };
 
   private alerts: Record<AlertSound, Sound> = {
-    "bell": { 
+    "bell-ring-01": { 
       howl: null, 
-      url: "/sounds/bell.mp3" 
+      url: "/sounds/bell-ring-01.mp3" 
     },
-    "chime": { 
+    "bell-ringing-03a": { 
       howl: null, 
-      url: "/sounds/chime.mp3" 
+      url: "/sounds/bell-ringing-03a.mp3" 
     },
-    "gentle": { 
+    "bell-ringing-05": { 
       howl: null, 
-      url: "/sounds/gentle.mp3" 
-    },
-    "digital": { 
-      howl: null, 
-      url: "/sounds/digital.mp3" 
+      url: "/sounds/bell-ringing-05.mp3" 
     }
   };
 
   private currentSound: SoundType = "none";
   private initialized = false;
   private audioContext: AudioContext | null = null;
+  private userInteracted = false;
 
   constructor() {
-    // Initialize with a silent sound to unlock audio
-    const silentSound = new Howl({
-      src: ['data:audio/wav;base64,UklGRnoCAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoCAgAAAAA='],
-      volume: 0,
-      onload: () => {
-        this.initialized = true;
-        console.log('Audio initialized');
-      },
-      onloaderror: (_, err) => {
-        console.error('Error initializing audio:', err);
-        this.initialized = true; // Still mark as initialized even if silent sound fails
+    // Add click event listener to handle user interaction
+    document.addEventListener('click', this.handleUserInteraction.bind(this));
+    document.addEventListener('keydown', this.handleUserInteraction.bind(this));
+    document.addEventListener('touchstart', this.handleUserInteraction.bind(this));
+  }
+
+  private handleUserInteraction(): void {
+    if (!this.userInteracted) {
+      this.userInteracted = true;
+      this.initializeAudio();
+    }
+  }
+
+  private async initializeAudio(): Promise<void> {
+    if (this.initialized) return;
+
+    try {
+      // Create and resume audio context
+      this.audioContext = new AudioContext();
+      await this.audioContext.resume();
+      
+      // Initialize with a silent sound
+      const silentSound = new Howl({
+        src: ['data:audio/wav;base64,UklGRnoCAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoCAgAAAAA='],
+        volume: 0,
+        onload: () => {
+          this.initialized = true;
+          console.log('Audio initialized');
+          // Preload all sounds after initialization
+          this.preloadSounds();
+        },
+        onloaderror: (_, err) => {
+          console.error('Error initializing audio:', err);
+          this.initialized = true; // Still mark as initialized even if silent sound fails
+          // Preload all sounds even if initialization fails
+          this.preloadSounds();
+        }
+      });
+      silentSound.play();
+    } catch (error) {
+      console.error('Error initializing audio:', error);
+    }
+  }
+
+  private preloadSounds(): void {
+    // Preload all sounds
+    Object.entries(this.sounds).forEach(([type, sound]) => {
+      if (type !== "none" && sound.url) {
+        this.getSound(type as SoundType);
       }
     });
-    silentSound.play();
 
-    // Add click event listener to resume audio context
-    document.addEventListener('click', this.resumeAudioContext.bind(this));
+    // Preload all alerts
+    Object.entries(this.alerts).forEach(([type, alert]) => {
+      if (alert.url) {
+        this.getAlert(type as AlertSound);
+      }
+    });
   }
 
   private async resumeAudioContext(): Promise<void> {
@@ -122,6 +142,7 @@ class AudioManager {
       loop: sound.loop || false,
       volume: 0.5,
       html5: true,
+      preload: true,
       onload: () => console.log(`Sound loaded: ${sound.url}`),
       onloaderror: (_, err) => {
         console.error(`Error loading sound:`, err);
@@ -158,6 +179,11 @@ class AudioManager {
   }
 
   async playSound(type: SoundType): Promise<void> {
+    if (!this.userInteracted) {
+      console.log('Waiting for user interaction before playing sound');
+      return;
+    }
+
     if (!this.initialized) {
       console.log('Audio not initialized yet');
       return;
@@ -206,7 +232,12 @@ class AudioManager {
     }
   }
 
-  async playAlert(type: AlertSound = "bell"): Promise<void> {
+  async playAlert(type: AlertSound = "bell-ring-01"): Promise<void> {
+    if (!this.userInteracted) {
+      console.log('Waiting for user interaction before playing alert');
+      return;
+    }
+
     if (!this.initialized) {
       console.log('Audio not initialized yet');
       return;
