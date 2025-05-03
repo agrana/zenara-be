@@ -23,37 +23,37 @@ class AudioManager {
     "none": { howl: null, url: "" },
     "brown-noise": { 
       howl: null, 
-      url: "https://cdn.pixabay.com/download/audio/2022/03/10/audio_2de89c3def.mp3?filename=brown-noise-20602.mp3", 
+      url: "/sounds/brown-noise.mp3", 
       loop: true 
     },
     "white-noise": { 
       howl: null, 
-      url: "https://cdn.pixabay.com/download/audio/2021/08/09/audio_22588b738a.mp3?filename=white-noise-20-minutes-74577.mp3", 
+      url: "/sounds/white-noise.mp3", 
       loop: true 
     },
     "pink-noise": { 
       howl: null, 
-      url: "https://cdn.pixabay.com/download/audio/2022/11/17/audio_0e31dc3bef.mp3?filename=pink-noise-20-min-163366.mp3", 
+      url: "/sounds/pink-noise.mp3", 
       loop: true 
     },
     "rain": { 
       howl: null, 
-      url: "https://cdn.pixabay.com/download/audio/2021/08/12/audio_36781c2f47.mp3?filename=light-rain-ambient-114354.mp3", 
+      url: "/sounds/rain.mp3", 
       loop: true 
     },
     "storm": { 
       howl: null, 
-      url: "https://cdn.pixabay.com/download/audio/2021/08/09/audio_a4f8cc3e31.mp3?filename=storm-thunder-nature-sounds-125237.mp3", 
+      url: "/sounds/storm.mp3", 
       loop: true 
     },
     "ocean": { 
       howl: null, 
-      url: "https://cdn.pixabay.com/download/audio/2021/09/06/audio_54ca2dc150.mp3?filename=ocean-waves-112924.mp3", 
+      url: "/sounds/ocean.mp3", 
       loop: true 
     },
     "clock": { 
       howl: null, 
-      url: "https://cdn.pixabay.com/download/audio/2021/08/09/audio_88447e769f.mp3?filename=clock-ticking-60-second-loop-443.mp3", 
+      url: "/sounds/clock.mp3", 
       loop: true 
     }
   };
@@ -61,81 +61,138 @@ class AudioManager {
   private alerts: Record<AlertSound, Sound> = {
     "bell": { 
       howl: null, 
-      url: "https://cdn.pixabay.com/download/audio/2021/08/04/audio_bb630cc098.mp3?filename=meditation-bell-sound-64368.mp3" 
+      url: "/sounds/bell.mp3" 
     },
     "chime": { 
       howl: null, 
-      url: "https://cdn.pixabay.com/download/audio/2022/10/30/audio_f1b4f0fbcc.mp3?filename=fairy-chimes-180352.mp3" 
+      url: "/sounds/chime.mp3" 
     },
     "gentle": { 
       howl: null, 
-      url: "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0b9b82326.mp3?filename=alert-gentle-745.mp3" 
+      url: "/sounds/gentle.mp3" 
     },
     "digital": { 
       howl: null, 
-      url: "https://cdn.pixabay.com/download/audio/2021/08/04/audio_c8c8a73471.mp3?filename=digital-alarm-clock-151918.mp3" 
+      url: "/sounds/digital.mp3" 
     }
   };
 
   private currentSound: SoundType = "none";
+  private initialized = false;
+  private audioContext: AudioContext | null = null;
 
   constructor() {
-    this.preloadAlerts();
+    // Initialize with a silent sound to unlock audio
+    const silentSound = new Howl({
+      src: ['data:audio/wav;base64,UklGRnoCAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoCAgAAAAA='],
+      volume: 0,
+      onload: () => {
+        this.initialized = true;
+        console.log('Audio initialized');
+      },
+      onloaderror: (_, err) => {
+        console.error('Error initializing audio:', err);
+        this.initialized = true; // Still mark as initialized even if silent sound fails
+      }
+    });
+    silentSound.play();
+
+    // Add click event listener to resume audio context
+    document.addEventListener('click', this.resumeAudioContext.bind(this));
   }
 
-  private preloadAlerts() {
-    Object.keys(this.alerts).forEach((key) => {
-      const alertType = key as AlertSound;
-      const sound = this.alerts[alertType];
-      
-      if (sound.url) {
-        sound.howl = new Howl({
-          src: [sound.url],
-          preload: true,
-          volume: 0.7,
-        });
+  private async resumeAudioContext(): Promise<void> {
+    if (!this.audioContext) {
+      this.audioContext = new AudioContext();
+    }
+    
+    if (this.audioContext.state === 'suspended') {
+      try {
+        await this.audioContext.resume();
+        console.log('AudioContext resumed');
+      } catch (error) {
+        console.error('Error resuming AudioContext:', error);
+      }
+    }
+  }
+
+  private createHowl(sound: Sound): Howl {
+    return new Howl({
+      src: [sound.url],
+      loop: sound.loop || false,
+      volume: 0.5,
+      html5: true,
+      onload: () => console.log(`Sound loaded: ${sound.url}`),
+      onloaderror: (_, err) => {
+        console.error(`Error loading sound:`, err);
+        // Try to load the sound again after a delay
+        setTimeout(() => {
+          if (!sound.howl?.state()) {
+            console.log(`Retrying to load sound: ${sound.url}`);
+            sound.howl = this.createHowl(sound);
+          }
+        }, 1000);
+      },
+      onplayerror: (_, err) => {
+        console.error(`Error playing sound:`, err);
+        // Try to resume audio context if there's a play error
+        this.resumeAudioContext();
       }
     });
   }
 
-  private loadSound(type: SoundType): Promise<void> {
-    return new Promise((resolve) => {
-      if (type === "none") {
-        resolve();
-        return;
-      }
+  private getSound(type: SoundType): Sound {
+    const sound = this.sounds[type];
+    if (!sound.howl && sound.url) {
+      sound.howl = this.createHowl(sound);
+    }
+    return sound;
+  }
 
-      const sound = this.sounds[type];
-      
-      if (!sound.howl && sound.url) {
-        sound.howl = new Howl({
-          src: [sound.url],
-          loop: sound.loop || false,
-          volume: 0.5,
-          onload: () => resolve(),
-        });
-      } else {
-        resolve();
-      }
-    });
+  private getAlert(type: AlertSound): Sound {
+    const alert = this.alerts[type];
+    if (!alert.howl && alert.url) {
+      alert.howl = this.createHowl(alert);
+    }
+    return alert;
   }
 
   async playSound(type: SoundType): Promise<void> {
-    if (this.currentSound !== "none") {
-      this.stopSound();
-    }
-
-    if (type === "none") {
-      this.currentSound = "none";
+    if (!this.initialized) {
+      console.log('Audio not initialized yet');
       return;
     }
 
-    await this.loadSound(type);
-    const sound = this.sounds[type];
-    
-    if (sound.howl) {
-      sound.howl.play();
-      this.currentSound = type;
+    try {
+      // Ensure audio context is resumed
+      await this.resumeAudioContext();
+
+      if (this.currentSound !== "none") {
+        this.stopSound();
+      }
+
+      if (type === "none") {
+        this.currentSound = "none";
+        return;
+      }
+
+      const sound = this.getSound(type);
+      if (sound.howl) {
+        const state = sound.howl.state();
+        if (state === 'loaded') {
+          sound.howl.play();
+          this.currentSound = type;
+        } else {
+          console.log(`Sound ${type} not ready, state: ${state}`);
+          // Wait for the sound to load
+          sound.howl.once('load', () => {
+            sound.howl?.play();
+            this.currentSound = type;
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error playing sound:', error);
     }
   }
 
@@ -150,10 +207,30 @@ class AudioManager {
   }
 
   async playAlert(type: AlertSound = "bell"): Promise<void> {
-    const alert = this.alerts[type];
-    
-    if (alert.howl) {
-      alert.howl.play();
+    if (!this.initialized) {
+      console.log('Audio not initialized yet');
+      return;
+    }
+
+    try {
+      // Ensure audio context is resumed
+      await this.resumeAudioContext();
+
+      const alert = this.getAlert(type);
+      if (alert.howl) {
+        const state = alert.howl.state();
+        if (state === 'loaded') {
+          alert.howl.play();
+        } else {
+          console.log(`Alert ${type} not ready, state: ${state}`);
+          // Wait for the alert to load
+          alert.howl.once('load', () => {
+            alert.howl?.play();
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error playing alert:', error);
     }
   }
 
