@@ -58,7 +58,7 @@ export const usePomodoroStore = create<PomodoroState>()(
       sessionsCompleted: 0,
       dailyGoal: 4,
       backgroundSound: 'none',
-      alertSound: 'bell',
+      alertSound: 'bell-ringing-03a',
       sessions: [],
       
       startTimer: () => {
