@@ -8,7 +8,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown, ChevronUp, Volume2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Volume2, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -99,7 +99,7 @@ export default function PomodoroCard() {
         onOpenChange={setIsOpen}
         className="glass rounded-xl shadow-xl overflow-hidden transition-all duration-300"
       >
-        <CollapsibleTrigger className="w-full">
+       <CollapsibleTrigger className="w-full">
           <CardHeader className="p-4 bg-white/20 dark:bg-slate-800/20 cursor-pointer">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Pomodoro Timer</h2>
@@ -110,7 +110,7 @@ export default function PomodoroCard() {
               )}
             </div>
           </CardHeader>
-        </CollapsibleTrigger>
+        </CollapsibleTrigger> 
         
         <CollapsibleContent>
           <CardContent className="bg-white/80 dark:bg-slate-800/80 p-6">
@@ -248,13 +248,10 @@ export default function PomodoroCard() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    <SelectItem value="brown-noise">Brown Noise</SelectItem>
-                    <SelectItem value="white-noise">White Noise</SelectItem>
-                    <SelectItem value="pink-noise">Pink Noise</SelectItem>
-                    <SelectItem value="rain">Rain</SelectItem>
-                    <SelectItem value="storm">Storm</SelectItem>
-                    <SelectItem value="ocean">Ocean Waves</SelectItem>
-                    <SelectItem value="clock">Clock Ticking</SelectItem>
+                    <SelectItem value="crowd-talking">Crowd Talking</SelectItem>
+                    <SelectItem value="ocean-wave-1">Ocean Wave (Calm)</SelectItem>
+                    <SelectItem value="ocean-wave-2">Ocean Wave (Strong)</SelectItem>
+                    <SelectItem value="rain-07">Gentle Rain</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -279,10 +276,9 @@ export default function PomodoroCard() {
                     <SelectValue placeholder="Bell" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="bell">Meditation Bell</SelectItem>
-                    <SelectItem value="chime">Fairy Chime</SelectItem>
-                    <SelectItem value="gentle">Gentle Alert</SelectItem>
-                    <SelectItem value="digital">Digital Alert</SelectItem>
+                    <SelectItem value="bell-ring-01">Bell Ring (Single)</SelectItem>
+                    <SelectItem value="bell-ringing-03a">Bell Ring (Triple)</SelectItem>
+                    <SelectItem value="bell-ringing-05">Bell Ring (Soft)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -340,7 +336,7 @@ export default function PomodoroCard() {
               Clear Selection
             </Button>
             <Button onClick={() => setIsSelectTaskOpen(false)}>
-              Done
+              <X className="h-4 w-4" />
             </Button>
           </DialogFooter>
         </DialogContent>
