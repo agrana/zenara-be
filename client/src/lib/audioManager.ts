@@ -5,7 +5,8 @@ export type SoundType =
   | "crowd-talking" 
   | "ocean-wave-1" 
   | "ocean-wave-2" 
-  | "rain-07";
+  | "rain-07"
+  | "white-noise";
 
 export type AlertSound = "bell-ring-01" | "bell-ringing-03a" | "bell-ringing-05";
 
@@ -37,7 +38,12 @@ class AudioManager {
       howl: null, 
       url: "/sounds/rain-07.mp3", 
       loop: true 
-    }
+    },
+    "white-noise": { 
+      howl: null, 
+      url: "/sounds/03-White-Noise-10min.mp3", 
+      loop: true 
+    },
   };
 
   private alerts: Record<AlertSound, Sound> = {

@@ -252,6 +252,7 @@ export default function PomodoroCard() {
                     <SelectItem value="ocean-wave-1">Ocean Wave (Calm)</SelectItem>
                     <SelectItem value="ocean-wave-2">Ocean Wave (Strong)</SelectItem>
                     <SelectItem value="rain-07">Gentle Rain</SelectItem>
+                    <SelectItem value="white-noise">White Noise</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
