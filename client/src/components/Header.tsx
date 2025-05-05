@@ -14,11 +14,11 @@ import {
 
 export default function Header() {
   const { theme, setTheme } = useTheme();
-  const { 
-    backgroundRotation, 
-    selectedCategory, 
-    setBackgroundRotation, 
-    refreshBackground 
+  const {
+    backgroundRotation,
+    selectedCategory,
+    setBackgroundRotation,
+    refreshBackground
   } = useAppStore();
 
   useEffect(() => {
@@ -29,8 +29,8 @@ export default function Header() {
 
   return (
     <header className="w-full pt-6 pb-2 px-4 flex justify-between items-center">
-      <div className="text-3xl font-bold text-white drop-shadow-lg">Serene Start</div>
-      
+      <div className="text-3xl font-bold text-white drop-shadow-lg">Nature Motivator</div>
+
       <div className="flex space-x-4 items-center">
         <Button
           variant="ghost"
@@ -40,7 +40,7 @@ export default function Header() {
         >
           {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
         </Button>
-        
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -54,62 +54,62 @@ export default function Header() {
           <DropdownMenuContent className="w-56">
             <DropdownMenuLabel>Background Settings</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            
-            <DropdownMenuItem 
+
+            <DropdownMenuItem
               onClick={() => setBackgroundRotation('daily')}
               className={backgroundRotation === 'daily' ? "bg-primary/10" : ""}
             >
               Change Daily
             </DropdownMenuItem>
-            
-            <DropdownMenuItem 
+
+            <DropdownMenuItem
               onClick={() => setBackgroundRotation('hourly')}
               className={backgroundRotation === 'hourly' ? "bg-primary/10" : ""}
             >
               Change Hourly
             </DropdownMenuItem>
-            
-            <DropdownMenuItem 
+
+            <DropdownMenuItem
               onClick={() => setBackgroundRotation('random')}
               className={backgroundRotation === 'random' ? "bg-primary/10" : ""}
             >
               Random
             </DropdownMenuItem>
-            
+
             <DropdownMenuSeparator />
             <DropdownMenuLabel>Categorized Backgrounds</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            
-            <DropdownMenuItem 
+
+            <DropdownMenuItem
               onClick={() => setBackgroundRotation('category', 'landscape')}
               className={backgroundRotation === 'category' && selectedCategory === 'landscape' ? "bg-primary/10" : ""}
             >
               Landscapes
             </DropdownMenuItem>
-            
-            <DropdownMenuItem 
+
+            <DropdownMenuItem
               onClick={() => setBackgroundRotation('category', 'forest')}
               className={backgroundRotation === 'category' && selectedCategory === 'forest' ? "bg-primary/10" : ""}
             >
               Forests
             </DropdownMenuItem>
-            
-            <DropdownMenuItem 
+
+            <DropdownMenuItem
               onClick={() => setBackgroundRotation('category', 'ocean')}
               className={backgroundRotation === 'category' && selectedCategory === 'ocean' ? "bg-primary/10" : ""}
             >
               Ocean
             </DropdownMenuItem>
-            
-            <DropdownMenuItem 
+
+            <DropdownMenuItem
               onClick={() => setBackgroundRotation('category', 'mountain')}
               className={backgroundRotation === 'category' && selectedCategory === 'mountain' ? "bg-primary/10" : ""}
             >
               Mountains
             </DropdownMenuItem>
-            
+
             <DropdownMenuSeparator />
-            
+
             <DropdownMenuItem onClick={refreshBackground}>
               Refresh Background
             </DropdownMenuItem>

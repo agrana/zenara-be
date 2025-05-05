@@ -12,11 +12,14 @@ import '@uiw/react-md-editor/markdown-editor.css';
 import '@uiw/react-markdown-preview/markdown.css';
 import styles from './ScratchpadCard.module.css';
 import ScratchpadList from './ScratchpadList';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function ScratchpadCard() {
   const [isOpen, setIsOpen] = useState(true);
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
+  const [isViewerMode, setIsViewerMode] = useState(false);
   const { darkMode } = useAppStore();
 
   const {
@@ -174,18 +177,35 @@ export default function ScratchpadCard() {
                   )}
                   Process
                 </Button>
+
+                <Button
+                  size="sm"
+                  variant={isViewerMode ? "default" : "outline"}
+                  onClick={() => setIsViewerMode(!isViewerMode)}
+                >
+                  {isViewerMode ? "Edit" : "View"}
+                </Button>
               </div>
 
               <div className={`h-[400px] overflow-hidden rounded-lg border border-slate-300 dark:border-slate-600 ${styles.mdEditorToolbar}`}>
-                <MDEditor
-                  value={content}
-                  onChange={(value) => setContent(value || '')}
-                  preview="edit"
-                  height={400}
-                  visibleDragbar={false}
-                  className="bg-white dark:bg-slate-700"
-                  data-color-mode={darkMode ? 'dark' : 'light'}
-                />
+                {isViewerMode ? (
+                  <div
+                    className="bg-white dark:bg-slate-700 p-4 h-full overflow-auto prose dark:prose-invert"
+                    style={{ height: 400 }}
+                  >
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <MDEditor
+                    value={content}
+                    onChange={(value) => setContent(value || '')}
+                    preview="edit"
+                    height={400}
+                    visibleDragbar={false}
+                    className="bg-white dark:bg-slate-700"
+                    data-color-mode={darkMode ? 'dark' : 'light'}
+                  />
+                )}
               </div>
             </CardContent>
           </CollapsibleContent>
