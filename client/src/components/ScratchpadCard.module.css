@@ -29,4 +29,11 @@
 .mdEditorToolbar :global(.w-md-editor-preview) {
   font-size: 1.1rem;
   line-height: 1.6;
-} 
+}
+
+/* Only constrain the toolbar, do not affect parent containers */
+.w-md-editor-toolbar {
+  overflow-x: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+}
