@@ -35,6 +35,14 @@ export default defineConfig(async ({ mode }) => {
     },
     define: {
       'process.env': env
+    },
+    server: {
+      host: true,
+      allowedHosts: [
+        'localhost',
+        'devserver-main--profound-parfait-9b4ca5.netlify.app',
+        '.netlify.app'
+      ]
     }
   };
 });
