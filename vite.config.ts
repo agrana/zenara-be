@@ -41,7 +41,8 @@ export default defineConfig(async ({ mode }) => {
       allowedHosts: [
         'localhost',
         'devserver-main--profound-parfait-9b4ca5.netlify.app',
-        '.netlify.app'
+        '.netlify.app',
+        'zenara.be'
       ]
     }
   };
