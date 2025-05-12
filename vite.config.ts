@@ -34,7 +34,10 @@ export default defineConfig(async ({ mode }) => {
       emptyOutDir: true,
     },
     define: {
-      'process.env': env
+      'process.env': {
+        SUPABASE_URL: JSON.stringify(process.env.SUPABASE_URL),
+        SUPABASE_ANON_KEY: JSON.stringify(process.env.SUPABASE_ANON_KEY)
+      }
     },
     server: {
       host: true,
