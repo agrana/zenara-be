@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChevronDown, ChevronUp, Wand2 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import MDEditor, { commands, title1 } from '@uiw/react-md-editor';
-import '@uiw/react-md-editor/markdown-editor.css';
-import '@uiw/react-markdown-preview/markdown.css';
+import '@uiw/react-md-editor/markdown-editor.css?v=2';
+import '@uiw/react-markdown-preview/markdown.css?v=2';
 import styles from './ScratchpadCard.module.css';
 import ScratchpadList from './ScratchpadList';
 import ReactMarkdown from 'react-markdown';
@@ -163,11 +163,11 @@ export default function ScratchpadCard() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1">
+      <div className="flex-1 flex flex-col">
         <Collapsible
           open={isOpen}
           onOpenChange={setIsOpen}
-          className="glass rounded-xl shadow-xl overflow-hidden transition-all duration-300"
+          className="glass rounded-xl shadow-xl overflow-hidden transition-all duration-300 flex-1 flex flex-col"
         >
           <CollapsibleTrigger className="w-full">
             <CardHeader className="p-4 bg-white/20 dark:bg-slate-800/20 cursor-pointer">
@@ -184,8 +184,8 @@ export default function ScratchpadCard() {
             </CardHeader>
           </CollapsibleTrigger>
 
-          <CollapsibleContent>
-            <CardContent className="bg-white/80 dark:bg-slate-800/80 p-6">
+          <CollapsibleContent className="flex-1 flex flex-col">
+            <CardContent className="bg-white/80 dark:bg-slate-800/80 p-6 flex-1 flex flex-col">
               {error && (
                 <div className="mb-4 p-2 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded">
                   {error}
@@ -268,52 +268,54 @@ export default function ScratchpadCard() {
                 </Button>
               </div>
 
-              <div className={`h-[400px] overflow-hidden rounded-lg border border-slate-300 dark:border-slate-600 ${styles.mdEditorToolbar}`}>
+              <div className={`flex-1 min-h-0 overflow-hidden rounded-lg border border-slate-300 dark:border-slate-600 ${styles.mdEditorToolbar}`}>
                 {isViewerMode ? (
                   <div
                     className="bg-white dark:bg-slate-700 p-4 h-full overflow-auto prose dark:prose-invert"
-                    style={{ height: 400 }}
                   >
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
                   </div>
                 ) : (
-                  <MDEditor
-                    value={content}
-                    onChange={(value) => setContent(value || '')}
-                    preview="edit"
-                    height={400}
-                    visibleDragbar={false}
-                    className="bg-white dark:bg-slate-700"
-                    data-color-mode={darkMode ? 'dark' : 'light'}
-                    commands={[
-                      commands.group([
-                        commands.title1,
-                        commands.title2,
-                        commands.title3,
-                        commands.title4,
-                        commands.title5,
-                        commands.title6,
-                      ], {
-                        name: 'title',
-                        groupName: 'title',
-                        buttonProps: { 'aria-label': 'Insert title'}
-                      }),
-                      commands.divider,
-                      commands.unorderedListCommand,
-                      commands.orderedListCommand,
-                      commands.checkedListCommand,
-                      commands.divider,
-                      commands.code,
-                      commands.codeBlock,
-                      commands.hr,
-                      commands.divider,
-                      commands.table,
-                      commands.link,
-                      commands.strikethrough,
-                      commands.fullscreen,
-                    ]}
-                    extraCommands={[]}
-                  />
+                  <div className="h-full">
+                    <MDEditor
+                      value={content}
+                      onChange={(value) => setContent(value || '')}
+                      preview="edit"
+                      height="100%"
+                      visibleDragbar={false}
+                      className="bg-white dark:bg-slate-700 h-full"
+                      style={{ height: '100%' }}
+                      data-color-mode={darkMode ? 'dark' : 'light'}
+                      commands={[
+                        commands.group([
+                          commands.title1,
+                          commands.title2,
+                          commands.title3,
+                          commands.title4,
+                          commands.title5,
+                          commands.title6,
+                        ], {
+                          name: 'title',
+                          groupName: 'title',
+                          buttonProps: { 'aria-label': 'Insert title'}
+                        }),
+                        commands.divider,
+                        commands.unorderedListCommand,
+                        commands.orderedListCommand,
+                        commands.checkedListCommand,
+                        commands.divider,
+                        commands.code,
+                        commands.codeBlock,
+                        commands.hr,
+                        commands.divider,
+                        commands.table,
+                        commands.link,
+                        commands.strikethrough,
+                        commands.fullscreen,
+                      ]}
+                      extraCommands={[]}
+                    />
+                  </div>
                 )}
               </div>
             </CardContent>
