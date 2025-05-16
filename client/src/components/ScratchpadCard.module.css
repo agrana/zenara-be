@@ -19,6 +19,7 @@
 
 .mdEditorToolbar :global(.w-md-editor-content) {
   font-size: 1.1rem;
+  height: calc(100% - 40px) !important;
 }
 
 .mdEditorToolbar :global(.w-md-editor-text-input > textarea) {
@@ -36,4 +37,16 @@
   overflow-x: auto;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+/* Make the editor fill its container */
+.mdEditorToolbar :global(.w-md-editor) {
+  height: 100% !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.mdEditorToolbar :global(.w-md-editor-text) {
+  flex: 1;
+  min-height: 0;
 }

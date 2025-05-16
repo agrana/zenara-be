@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTaskStore, type Task } from "@/store/taskStore";
 import { usePomodoroStore } from "@/store/pomodoroStore";
 import { formatDateRelative, formatTimeSpent } from "@/lib/formatDate";
@@ -23,9 +23,14 @@ export default function TaskListCard() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  
-  const { tasks, addTask, editTask, deleteTask, toggleTask, getCompletedCount, getRemainingCount } = useTaskStore();
+
+  const { tasks, addTask, editTask, deleteTask, toggleTask, getCompletedCount, getRemainingCount, fetchTasks, isLoading, error } = useTaskStore();
   const { getTaskTimeSpent } = usePomodoroStore();
+
+  // Fetch tasks when component mounts
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,12 +39,12 @@ export default function TaskListCard() {
       setNewTaskTitle("");
     }
   };
-  
+
   const handleEdit = (task: Task) => {
     setEditingTask({ ...task });
     setEditDialogOpen(true);
   };
-  
+
   const handleSaveEdit = () => {
     if (editingTask && editingTask.title.trim()) {
       editTask(editingTask.id, editingTask.title.trim());
@@ -47,17 +52,17 @@ export default function TaskListCard() {
       setEditingTask(null);
     }
   };
-  
+
   const handleDelete = (taskId: number) => {
     if (window.confirm("Are you sure you want to delete this task?")) {
       deleteTask(taskId);
     }
   };
-  
+
   const formatTaskTime = (taskId: number): string => {
     const seconds = getTaskTimeSpent(taskId);
     if (seconds === 0) return "Not started";
-    
+
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) {
       return `${minutes} min`;
@@ -67,11 +72,11 @@ export default function TaskListCard() {
       return `${hours}h ${remainingMinutes}m`;
     }
   };
-  
+
   return (
     <>
-      <Collapsible 
-        open={isOpen} 
+      <Collapsible
+        open={isOpen}
         onOpenChange={setIsOpen}
         className="glass rounded-xl shadow-xl overflow-hidden transition-all duration-300"
       >
@@ -87,7 +92,7 @@ export default function TaskListCard() {
             </div>
           </CardHeader>
         </CollapsibleTrigger>
-        
+
         <CollapsibleContent>
           <CardContent className="bg-white/80 dark:bg-slate-800/80 p-6">
             <form onSubmit={handleAddTask} className="flex items-center mb-6">
@@ -102,7 +107,7 @@ export default function TaskListCard() {
                 <Plus className="h-5 w-5" />
               </Button>
             </form>
-            
+
             <div className="space-y-3 max-h-[450px] overflow-y-auto">
               {tasks.length === 0 ? (
                 <div className="text-center py-6 text-slate-500 dark:text-slate-400">
@@ -116,10 +121,10 @@ export default function TaskListCard() {
                       return a.completed ? 1 : -1;
                     }
                     // Then sort by creation date (newest first)
-                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
                   })
                   .map((task) => (
-                    <div 
+                    <div
                       key={task.id}
                       className="flex items-start p-3 bg-white dark:bg-slate-700 rounded-lg shadow-sm"
                     >
@@ -135,10 +140,14 @@ export default function TaskListCard() {
                         <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                           <span>
                             {task.completed
-                              ? `Completed: ${formatDateRelative(new Date(task.completedAt!))}`
-                              : `Created: ${formatDateRelative(new Date(task.createdAt))}`}
+                              ? (task.completed_at
+                                  ? `Completed: ${formatDateRelative(new Date(task.completed_at))}`
+                                  : 'Completed: Unknown')
+                              : (task.created_at
+                                  ? `Created: ${formatDateRelative(new Date(task.created_at))}`
+                                  : 'Created: Unknown')}
                           </span>
-                          
+
                           {getTaskTimeSpent(task.id) > 0 && (
                             <TooltipProvider>
                               <Tooltip>
@@ -157,17 +166,17 @@ export default function TaskListCard() {
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="h-8 w-8 text-slate-500 hover:text-primary transition-colors dark:text-slate-400 dark:hover:text-primary"
                           onClick={() => handleEdit(task)}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="h-8 w-8 text-slate-500 hover:text-red-500 transition-colors dark:text-slate-400 dark:hover:text-red-400"
                           onClick={() => handleDelete(task.id)}
                         >
@@ -178,7 +187,7 @@ export default function TaskListCard() {
                   ))
               )}
             </div>
-            
+
             <div className="mt-6 flex items-center justify-between text-sm text-slate-700 dark:text-slate-300">
               <span>
                 {getCompletedCount()} completed
@@ -197,13 +206,13 @@ export default function TaskListCard() {
           <DialogHeader>
             <DialogTitle>Edit Task</DialogTitle>
           </DialogHeader>
-          
+
           <Input
             value={editingTask?.title || ''}
             onChange={(e) => setEditingTask(prev => prev ? { ...prev, title: e.target.value } : null)}
             className="mt-2"
           />
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
               Cancel

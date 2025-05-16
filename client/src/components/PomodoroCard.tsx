@@ -21,7 +21,7 @@ import {
 export default function PomodoroCard() {
   const [isOpen, setIsOpen] = useState(true); // Start open by default
   const [isSelectTaskOpen, setIsSelectTaskOpen] = useState(false);
-  
+
   const {
     workDuration,
     breakDuration,
@@ -44,16 +44,24 @@ export default function PomodoroCard() {
     setCurrentTaskId,
     setBackgroundSound,
     setAlertSound,
+    fetchSessions,
+    isLoading,
+    error
   } = usePomodoroStore();
-  
+
   const { tasks } = useTaskStore();
-  
+
   const activeTask = tasks.find(task => task.id === currentTaskId);
-  
+
+  // Fetch sessions when component mounts
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
   // Timer logic
   useEffect(() => {
     let interval: number | null = null;
-    
+
     if (isRunning) {
       interval = window.setInterval(() => {
         tick();
@@ -61,19 +69,19 @@ export default function PomodoroCard() {
     } else if (interval) {
       clearInterval(interval);
     }
-    
+
     return () => {
       if (interval) clearInterval(interval);
     };
   }, [isRunning, tick]);
-  
+
   // Format remaining time
   const timeDisplay = formatDuration(remainingTime);
-  
+
   // Progress calculation
   const totalDuration = isBreak ? breakDuration * 60 : workDuration * 60;
   const progress = ((totalDuration - remainingTime) / totalDuration) * 100;
-  
+
   const handleStartPause = () => {
     if (isRunning) {
       pauseTimer();
@@ -83,19 +91,19 @@ export default function PomodoroCard() {
       startTimer();
     }
   };
-  
+
   const handleReset = () => {
     resetTimer();
   };
-  
+
   const getActiveTasks = () => {
     return tasks.filter(task => !task.completed);
   };
-  
+
   return (
     <>
-      <Collapsible 
-        open={isOpen} 
+      <Collapsible
+        open={isOpen}
         onOpenChange={setIsOpen}
         className="glass rounded-xl shadow-xl overflow-hidden transition-all duration-300"
       >
@@ -110,31 +118,31 @@ export default function PomodoroCard() {
               )}
             </div>
           </CardHeader>
-        </CollapsibleTrigger> 
-        
+        </CollapsibleTrigger>
+
         <CollapsibleContent>
           <CardContent className="bg-white/80 dark:bg-slate-800/80 p-6">
             <div className="flex flex-col items-center">
               <div className="relative" style={{ width: "200px", height: "200px" }}>
                 <svg className="w-full h-full" viewBox="0 0 100 100">
-                  <circle 
-                    className="text-slate-200 dark:text-slate-700" 
-                    strokeWidth="4" 
-                    stroke="currentColor" 
-                    fill="transparent" 
-                    r="42" 
-                    cx="50" 
-                    cy="50" 
+                  <circle
+                    className="text-slate-200 dark:text-slate-700"
+                    strokeWidth="4"
+                    stroke="currentColor"
+                    fill="transparent"
+                    r="42"
+                    cx="50"
+                    cy="50"
                   />
-                  <circle 
-                    className="progress-ring__circle text-primary" 
-                    strokeWidth="4" 
-                    stroke="currentColor" 
-                    fill="transparent" 
-                    r="42" 
-                    cx="50" 
-                    cy="50" 
-                    strokeDasharray="263.8" 
+                  <circle
+                    className="progress-ring__circle text-primary"
+                    strokeWidth="4"
+                    stroke="currentColor"
+                    fill="transparent"
+                    r="42"
+                    cx="50"
+                    cy="50"
+                    strokeDasharray="263.8"
                     strokeDashoffset={263.8 - (263.8 * progress) / 100}
                   />
                 </svg>
@@ -147,15 +155,15 @@ export default function PomodoroCard() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="mt-6 flex space-x-3">
-                <Button 
+                <Button
                   className={isRunning ? "bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600" : "bg-primary text-white hover:bg-blue-600"}
                   onClick={handleStartPause}
                 >
                   {isRunning ? "Pause" : isPaused ? "Resume" : "Start"}
                 </Button>
-                <Button 
+                <Button
                   variant="outline"
                   onClick={handleReset}
                   disabled={!isRunning && !isPaused}
@@ -163,12 +171,12 @@ export default function PomodoroCard() {
                   Reset
                 </Button>
               </div>
-              
+
               <div className="mt-6 w-full">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Active Task</span>
-                  <Button 
-                    variant="link" 
+                  <Button
+                    variant="link"
                     className="text-xs text-primary hover:text-blue-700 dark:hover:text-blue-400 p-0"
                     onClick={() => setIsSelectTaskOpen(true)}
                   >
@@ -181,12 +189,12 @@ export default function PomodoroCard() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="mt-6 w-full grid grid-cols-2 gap-4">
                 <div>
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Work</span>
-                  <Select 
-                    value={workDuration.toString()} 
+                  <Select
+                    value={workDuration.toString()}
                     onValueChange={(value) => setWorkDuration(parseInt(value))}
                     disabled={isRunning || isPaused}
                   >
@@ -205,8 +213,8 @@ export default function PomodoroCard() {
                 </div>
                 <div>
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Break</span>
-                  <Select 
-                    value={breakDuration.toString()} 
+                  <Select
+                    value={breakDuration.toString()}
                     onValueChange={(value) => setBreakDuration(parseInt(value))}
                     disabled={isRunning || isPaused}
                   >
@@ -222,13 +230,13 @@ export default function PomodoroCard() {
                   </Select>
                 </div>
               </div>
-              
+
               <div className="mt-6 w-full">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Background Sound</span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-6 w-6 p-0"
                     onClick={() => {
                       if (backgroundSound !== 'none' && isRunning) {
@@ -239,8 +247,8 @@ export default function PomodoroCard() {
                     <Volume2 className="h-4 w-4" />
                   </Button>
                 </div>
-                <Select 
-                  value={backgroundSound} 
+                <Select
+                  value={backgroundSound}
                   onValueChange={(value) => setBackgroundSound(value as SoundType)}
                 >
                   <SelectTrigger className="w-full">
@@ -256,21 +264,21 @@ export default function PomodoroCard() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="mt-6 w-full">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Alert Sound</span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-6 w-6 p-0"
                     onClick={() => audioManager.playAlert(alertSound)}
                   >
                     <Volume2 className="h-4 w-4" />
                   </Button>
                 </div>
-                <Select 
-                  value={alertSound} 
+                <Select
+                  value={alertSound}
                   onValueChange={(value) => setAlertSound(value as AlertSound)}
                 >
                   <SelectTrigger className="w-full">
@@ -283,7 +291,7 @@ export default function PomodoroCard() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="mt-6 w-full">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Today's Progress</span>
@@ -309,15 +317,15 @@ export default function PomodoroCard() {
               Choose a task to work on during your Pomodoro session.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-2 max-h-[300px] overflow-y-auto">
             {getActiveTasks().length > 0 ? (
               getActiveTasks().map((task) => (
-                <div 
+                <div
                   key={task.id}
                   className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                    task.id === currentTaskId 
-                      ? "bg-primary/10 border border-primary" 
+                    task.id === currentTaskId
+                      ? "bg-primary/10 border border-primary"
                       : "bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600"
                   }`}
                   onClick={() => setCurrentTaskId(task.id)}
@@ -331,7 +339,7 @@ export default function PomodoroCard() {
               </p>
             )}
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setCurrentTaskId(null)}>
               Clear Selection
