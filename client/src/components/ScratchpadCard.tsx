@@ -158,7 +158,7 @@ export default function ScratchpadCard() {
   return (
     <div className="flex h-full">
       {/* Sidebar */}
-      <div className="w-64 border-r border-slate-200 dark:border-slate-700">
+      <div className="w-64 border-r border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80">
         <ScratchpadList />
       </div>
 
