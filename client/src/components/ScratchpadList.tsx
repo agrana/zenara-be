@@ -3,12 +3,24 @@ import { useScratchpadStore } from '@/store/scratchpadStore';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
-export default function ScratchpadList() {
+interface ScratchpadListProps {
+  searchText?: string;
+}
+
+export default function ScratchpadList({ searchText = '' }: ScratchpadListProps) {
   const { notes, currentNote, isLoading, error, fetchNotes, setCurrentNote } = useScratchpadStore();
 
   useEffect(() => {
     fetchNotes();
   }, [fetchNotes]);
+
+  // Filter notes based on searchText
+  const filteredNotes = searchText.trim() === ''
+    ? notes
+    : notes.filter(note =>
+        note.title.toLowerCase().includes(searchText.toLowerCase()) ||
+        (note.content && note.content.toLowerCase().includes(searchText.toLowerCase()))
+      );
 
   if (isLoading) {
     return (
@@ -28,16 +40,8 @@ export default function ScratchpadList() {
 
   return (
     <div className="flex flex-col gap-2 p-4">
-      <Button
-        variant="outline"
-        className="w-full"
-        onClick={() => setCurrentNote(null)}
-      >
-        New Note
-      </Button>
-      
-      <div className="flex flex-col gap-2 mt-4">
-        {notes.map((note) => (
+      <div className="flex flex-col gap-2">
+        {filteredNotes.map((note) => (
           <Button
             key={note.id}
             variant={currentNote?.id === note.id ? 'default' : 'ghost'}
@@ -50,4 +54,4 @@ export default function ScratchpadList() {
       </div>
     </div>
   );
-} 
+}
