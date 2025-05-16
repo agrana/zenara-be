@@ -101,6 +101,7 @@ export default function ScratchpadCard() {
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
   const [isViewerMode, setIsViewerMode] = useState(false);
+  const [searchText, setSearchText] = useState('');
   const { darkMode } = useAppStore();
 
   const {
@@ -155,11 +156,28 @@ export default function ScratchpadCard() {
     }
   };
 
+  const handleNewNote = () => {
+    setTitle('');
+    setContent('');
+    // Optionally, clear currentNote in the store if needed
+    // setCurrentNote(null);
+  };
+
   return (
     <div className="flex h-full">
       {/* Sidebar */}
-      <div className="w-64 border-r border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80">
-        <ScratchpadList />
+      <div className="w-64 border-r border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 flex flex-col">
+        {/* Search bar */}
+        <input
+          type="text"
+          value={searchText}
+          onChange={e => setSearchText(e.target.value)}
+          placeholder="Search notes..."
+          className="m-4 mb-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+        <div className="flex-1 overflow-y-auto">
+          <ScratchpadList searchText={searchText} />
+        </div>
       </div>
 
       {/* Main content */}
@@ -217,6 +235,7 @@ export default function ScratchpadCard() {
                   </SelectContent>
                 </Select>
 
+                {/* Button group: Save, New, View, Process */}
                 <Button
                   size="sm"
                   variant="outline"
@@ -227,6 +246,33 @@ export default function ScratchpadCard() {
                     <Loader2 className="h-4 w-4 animate-spin mr-1" />
                   ) : null}
                   Save
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleNewNote}
+                >
+                  New
+                </Button>
+                <Button
+                  size="sm"
+                  variant={isViewerMode ? "default" : "outline"}
+                  onClick={() => setIsViewerMode(!isViewerMode)}
+                >
+                  {isViewerMode ? "Edit" : "View"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => processContent()}
+                  disabled={isProcessing || !content}
+                >
+                  {isProcessing ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  ) : (
+                    <Wand2 className="h-4 w-4 mr-1" />
+                  )}
+                  Process
                 </Button>
 
                 {currentNote && (
@@ -244,28 +290,6 @@ export default function ScratchpadCard() {
                     Delete
                   </Button>
                 )}
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => processContent()}
-                  disabled={isProcessing || !content}
-                >
-                  {isProcessing ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                  ) : (
-                    <Wand2 className="h-4 w-4 mr-1" />
-                  )}
-                  Process
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant={isViewerMode ? "default" : "outline"}
-                  onClick={() => setIsViewerMode(!isViewerMode)}
-                >
-                  {isViewerMode ? "Edit" : "View"}
-                </Button>
               </div>
 
               <div className={`flex-1 min-h-0 overflow-hidden rounded-lg border border-slate-300 dark:border-slate-600 ${styles.mdEditorToolbar}`}>
