@@ -19,7 +19,7 @@ export interface ScratchpadState {
   isProcessing: boolean;
   isLoading: boolean;
   error: string | null;
-  
+
   // Autosave state
   isAutoSaving: boolean;
   lastAutoSaved: Date | null;
@@ -35,7 +35,7 @@ export interface ScratchpadState {
   setIsProcessing: (isProcessing: boolean) => void;
   processContent: () => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
-  
+
   // Autosave actions
   autoSaveNote: (title: string, content: string) => Promise<void>;
   setAutoSaveError: (error: string | null) => void;
@@ -52,7 +52,7 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
   isProcessing: false,
   isLoading: false,
   error: null,
-  
+
   // Autosave state
   isAutoSaving: false,
   lastAutoSaved: null,
@@ -197,10 +197,10 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
     if (!content.trim() || get().isAutoSaving) return;
 
     set({ isAutoSaving: true, autoSaveError: null });
-    
+
     try {
       const { currentNote } = get();
-      
+
       if (currentNote) {
         // Update existing note
         const { data, error } = await supabase
@@ -211,7 +211,7 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
           .single();
 
         if (error) throw error;
-        
+
         set({
           notes: get().notes.map(note => note.id === currentNote.id ? data : note),
           currentNote: data,
@@ -227,7 +227,7 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
           .single();
 
         if (error) throw error;
-        
+
         set({
           notes: [data, ...get().notes],
           currentNote: data,
@@ -237,9 +237,9 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
       }
     } catch (error) {
       console.error('Error autosaving note:', error);
-      set({ 
-        isAutoSaving: false, 
-        autoSaveError: 'Failed to autosave note' 
+      set({
+        isAutoSaving: false,
+        autoSaveError: 'Failed to autosave note'
       });
     }
   },
