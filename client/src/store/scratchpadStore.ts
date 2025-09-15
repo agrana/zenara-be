@@ -19,6 +19,11 @@ export interface ScratchpadState {
   isProcessing: boolean;
   isLoading: boolean;
   error: string | null;
+  
+  // Autosave state
+  isAutoSaving: boolean;
+  lastAutoSaved: Date | null;
+  autoSaveError: string | null;
 
   // Actions
   fetchNotes: () => Promise<void>;
@@ -30,6 +35,10 @@ export interface ScratchpadState {
   setIsProcessing: (isProcessing: boolean) => void;
   processContent: () => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
+  
+  // Autosave actions
+  autoSaveNote: (title: string, content: string) => Promise<void>;
+  setAutoSaveError: (error: string | null) => void;
 
   // Format templates
   getFormatTemplate: (format: FormatType) => string;
@@ -43,6 +52,11 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
   isProcessing: false,
   isLoading: false,
   error: null,
+  
+  // Autosave state
+  isAutoSaving: false,
+  lastAutoSaved: null,
+  autoSaveError: null,
 
   fetchNotes: async () => {
     set({ isLoading: true, error: null });
@@ -175,5 +189,60 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
       default:
         return "";
     }
-  }
+  },
+
+  // Autosave functions
+  autoSaveNote: async (title: string, content: string) => {
+    // Don't autosave if there's no content or if already saving
+    if (!content.trim() || get().isAutoSaving) return;
+
+    set({ isAutoSaving: true, autoSaveError: null });
+    
+    try {
+      const { currentNote } = get();
+      
+      if (currentNote) {
+        // Update existing note
+        const { data, error } = await supabase
+          .from('notes')
+          .update({ title, content })
+          .eq('id', currentNote.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        
+        set({
+          notes: get().notes.map(note => note.id === currentNote.id ? data : note),
+          currentNote: data,
+          isAutoSaving: false,
+          lastAutoSaved: new Date()
+        });
+      } else {
+        // Create new note
+        const { data, error } = await supabase
+          .from('notes')
+          .insert([{ title: title || 'Untitled Note', content }])
+          .select()
+          .single();
+
+        if (error) throw error;
+        
+        set({
+          notes: [data, ...get().notes],
+          currentNote: data,
+          isAutoSaving: false,
+          lastAutoSaved: new Date()
+        });
+      }
+    } catch (error) {
+      console.error('Error autosaving note:', error);
+      set({ 
+        isAutoSaving: false, 
+        autoSaveError: 'Failed to autosave note' 
+      });
+    }
+  },
+
+  setAutoSaveError: (error) => set({ autoSaveError: error })
 }));

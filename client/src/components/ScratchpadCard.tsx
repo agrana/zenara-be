@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useScratchpadStore, type FormatType } from "@/store/scratchpadStore";
 import { useAppStore } from "@/store/appStore";
 import { Button } from "@/components/ui/button";
@@ -111,6 +111,9 @@ export default function ScratchpadCard() {
     isProcessing,
     isLoading,
     error,
+    isAutoSaving,
+    lastAutoSaved,
+    autoSaveError,
     setFormat,
     setProcessedContent,
     setIsProcessing,
@@ -118,8 +121,13 @@ export default function ScratchpadCard() {
     getFormatTemplate,
     createNote,
     updateNote,
-    deleteNote
+    deleteNote,
+    autoSaveNote,
+    setAutoSaveError
   } = useScratchpadStore();
+
+  // Autosave timeout ref
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update local state when currentNote changes
   useEffect(() => {
@@ -131,6 +139,60 @@ export default function ScratchpadCard() {
       setTitle('');
     }
   }, [currentNote]);
+
+  // Debounced autosave function
+  const debouncedAutoSave = useCallback((title: string, content: string) => {
+    // Clear existing timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Set new timeout for autosave (2 seconds delay)
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      autoSaveNote(title, content);
+    }, 2000);
+  }, [autoSaveNote]);
+
+  // Handle content changes with autosave
+  const handleContentChange = useCallback((value: string | undefined) => {
+    const newContent = value || '';
+    setContent(newContent);
+    debouncedAutoSave(title, newContent);
+  }, [title, debouncedAutoSave]);
+
+  // Handle title changes with autosave
+  const handleTitleChange = useCallback((value: string) => {
+    setTitle(value);
+    debouncedAutoSave(value, content);
+  }, [content, debouncedAutoSave]);
+
+  // Save on window close
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Clear any pending autosave and save immediately
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+        autoSaveNote(title, content);
+      }
+      
+      // If there's content but no current note, warn user
+      if (content.trim() && !currentNote) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Clear timeout on cleanup
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [title, content, currentNote, autoSaveNote]);
 
   const handleSave = async () => {
     if (!title.trim() && !content.trim()) return;
@@ -210,11 +272,37 @@ export default function ScratchpadCard() {
                 </div>
               )}
 
+              {/* Autosave status indicators */}
+              {autoSaveError && (
+                <div className="mb-4 p-2 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded text-sm">
+                  Autosave failed: {autoSaveError}
+                  <button 
+                    onClick={() => setAutoSaveError(null)}
+                    className="ml-2 text-red-800 dark:text-red-300 hover:underline"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+              
+              {isAutoSaving && (
+                <div className="mb-4 p-2 bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded text-sm flex items-center">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Saving...
+                </div>
+              )}
+              
+              {lastAutoSaved && !isAutoSaving && !autoSaveError && (
+                <div className="mb-4 p-2 bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded text-sm">
+                  Saved at {lastAutoSaved.toLocaleTimeString()}
+                </div>
+              )}
+
               <div className="flex flex-wrap gap-1 items-center mb-4">
                 <input
                   type="text"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) => handleTitleChange(e.target.value)}
                   placeholder="Note title"
                   className="flex-1 min-w-[200px] px-3 py-2 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700"
                 />
@@ -303,7 +391,7 @@ export default function ScratchpadCard() {
                   <div className="h-full">
                     <MDEditor
                       value={content}
-                      onChange={(value) => setContent(value || '')}
+                      onChange={handleContentChange}
                       preview="edit"
                       height="100%"
                       visibleDragbar={false}
