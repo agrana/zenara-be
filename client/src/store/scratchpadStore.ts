@@ -19,7 +19,7 @@ export interface ScratchpadState {
   isProcessing: boolean;
   isLoading: boolean;
   error: string | null;
-  
+
   // Autosave state
   isAutoSaving: boolean;
   lastAutoSaved: Date | null;
@@ -35,9 +35,10 @@ export interface ScratchpadState {
   setIsProcessing: (isProcessing: boolean) => void;
   processContent: () => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
-  
+
   // Autosave actions
   autoSaveNote: (title: string, content: string) => Promise<void>;
+  immediateSave: (title: string, content: string) => Promise<void>;
   setAutoSaveError: (error: string | null) => void;
 
   // Format templates
@@ -52,7 +53,7 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
   isProcessing: false,
   isLoading: false,
   error: null,
-  
+
   // Autosave state
   isAutoSaving: false,
   lastAutoSaved: null,
@@ -219,7 +220,60 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
           lastAutoSaved: new Date()
         });
       } else {
-        // Create new note
+        // Create new note - only if we have meaningful content
+        if (content.trim().length > 0) {
+          const { data, error } = await supabase
+            .from('notes')
+            .insert([{ title: title || 'Untitled Note', content }])
+            .select()
+            .single();
+
+          if (error) throw error;
+          
+          set({
+            notes: [data, ...get().notes],
+            currentNote: data,
+            isAutoSaving: false,
+            lastAutoSaved: new Date()
+          });
+        } else {
+          set({ isAutoSaving: false });
+        }
+      }
+    } catch (error) {
+      console.error('Error autosaving note:', error);
+      set({ 
+        isAutoSaving: false, 
+        autoSaveError: 'Failed to autosave note' 
+      });
+    }
+  },
+
+  immediateSave: async (title: string, content: string) => {
+    // Immediate save without debounce - for critical moments like tab switch
+    if (!content.trim()) return;
+
+    try {
+      const { currentNote } = get();
+      
+      if (currentNote) {
+        // Update existing note
+        const { data, error } = await supabase
+          .from('notes')
+          .update({ title, content })
+          .eq('id', currentNote.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        
+        set({
+          notes: get().notes.map(note => note.id === currentNote.id ? data : note),
+          currentNote: data,
+          lastAutoSaved: new Date()
+        });
+      } else if (content.trim().length > 0) {
+        // Create new note immediately
         const { data, error } = await supabase
           .from('notes')
           .insert([{ title: title || 'Untitled Note', content }])
@@ -231,16 +285,12 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
         set({
           notes: [data, ...get().notes],
           currentNote: data,
-          isAutoSaving: false,
           lastAutoSaved: new Date()
         });
       }
     } catch (error) {
-      console.error('Error autosaving note:', error);
-      set({ 
-        isAutoSaving: false, 
-        autoSaveError: 'Failed to autosave note' 
-      });
+      console.error('Error in immediate save:', error);
+      set({ autoSaveError: 'Failed to save note immediately' });
     }
   },
 

@@ -123,6 +123,7 @@ export default function ScratchpadCard() {
     updateNote,
     deleteNote,
     autoSaveNote,
+    immediateSave,
     setAutoSaveError
   } = useScratchpadStore();
 
@@ -166,15 +167,9 @@ export default function ScratchpadCard() {
     debouncedAutoSave(value, content);
   }, [content, debouncedAutoSave]);
 
-  // Save on window close
+  // Save on window close and tab switch
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Clear any pending autosave and save immediately
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-        autoSaveNote(title, content);
-      }
-      
       // If there's content but no current note, warn user
       if (content.trim() && !currentNote) {
         e.preventDefault();
@@ -183,16 +178,40 @@ export default function ScratchpadCard() {
       }
     };
 
+    const handleVisibilityChange = () => {
+      // When tab becomes hidden or page is about to unload, save immediately
+      if (document.hidden && content.trim()) {
+        // Clear any pending autosave and save immediately
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current);
+        }
+        // Use immediate save for critical moments
+        immediateSave(title, content);
+      }
+    };
+
     window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       // Clear timeout on cleanup
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [title, content, currentNote, autoSaveNote]);
+  }, [title, content, currentNote, immediateSave]);
+
+  // Save on component unmount
+  useEffect(() => {
+    return () => {
+      // Save when component unmounts
+      if (content.trim()) {
+        immediateSave(title, content);
+      }
+    };
+  }, [title, content, immediateSave]);
 
   const handleSave = async () => {
     if (!title.trim() && !content.trim()) return;
@@ -276,7 +295,7 @@ export default function ScratchpadCard() {
               {autoSaveError && (
                 <div className="mb-4 p-2 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded text-sm">
                   Autosave failed: {autoSaveError}
-                  <button 
+                  <button
                     onClick={() => setAutoSaveError(null)}
                     className="ml-2 text-red-800 dark:text-red-300 hover:underline"
                   >
@@ -284,14 +303,14 @@ export default function ScratchpadCard() {
                   </button>
                 </div>
               )}
-              
+
               {isAutoSaving && (
                 <div className="mb-4 p-2 bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded text-sm flex items-center">
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   Saving...
                 </div>
               )}
-              
+
               {lastAutoSaved && !isAutoSaving && !autoSaveError && (
                 <div className="mb-4 p-2 bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded text-sm">
                   Saved at {lastAutoSaved.toLocaleTimeString()}
