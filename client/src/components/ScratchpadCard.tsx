@@ -123,6 +123,7 @@ export default function ScratchpadCard() {
     updateNote,
     deleteNote,
     autoSaveNote,
+    immediateSave,
     setAutoSaveError
   } = useScratchpadStore();
 
@@ -166,15 +167,9 @@ export default function ScratchpadCard() {
     debouncedAutoSave(value, content);
   }, [content, debouncedAutoSave]);
 
-  // Save on window close
+  // Save on window close and tab switch
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Clear any pending autosave and save immediately
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-        autoSaveNote(title, content);
-      }
-
       // If there's content but no current note, warn user
       if (content.trim() && !currentNote) {
         e.preventDefault();
@@ -183,16 +178,40 @@ export default function ScratchpadCard() {
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    const handleVisibilityChange = () => {
+      // When tab becomes hidden or page is about to unload, save immediately
+      if (document.hidden && content.trim()) {
+        // Clear any pending autosave and save immediately
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current);
+        }
+        // Use immediate save for critical moments
+        immediateSave(title, content);
+      }
+    };
 
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       // Clear timeout on cleanup
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [title, content, currentNote, autoSaveNote]);
+  }, [title, content, currentNote, immediateSave]);
+
+  // Save on component unmount
+  useEffect(() => {
+    return () => {
+      // Save when component unmounts
+      if (content.trim()) {
+        immediateSave(title, content);
+      }
+    };
+  }, [title, content, immediateSave]);
 
   const handleSave = async () => {
     if (!title.trim() && !content.trim()) return;
