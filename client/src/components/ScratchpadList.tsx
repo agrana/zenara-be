@@ -5,10 +5,12 @@ import { Loader2 } from 'lucide-react';
 
 interface ScratchpadListProps {
   searchText?: string;
+  currentTitle: string;
+  currentContent: string;
 }
 
-export default function ScratchpadList({ searchText = '' }: ScratchpadListProps) {
-  const { notes, currentNote, isLoading, error, fetchNotes, setCurrentNote } = useScratchpadStore();
+export default function ScratchpadList({ searchText = '', currentTitle, currentContent }: ScratchpadListProps) {
+  const { notes, currentNote, isLoading, error, fetchNotes, switchToNote } = useScratchpadStore();
 
   useEffect(() => {
     fetchNotes();
@@ -41,12 +43,19 @@ export default function ScratchpadList({ searchText = '' }: ScratchpadListProps)
   return (
     <div className="flex flex-col gap-2 p-4">
       <div className="flex flex-col gap-2">
+        <Button
+          variant={!currentNote ? 'default' : 'ghost'}
+          className="w-full justify-start"
+          onClick={() => switchToNote(null, currentTitle, currentContent)}
+        >
+          + New Note
+        </Button>
         {filteredNotes.map((note) => (
           <Button
             key={note.id}
             variant={currentNote?.id === note.id ? 'default' : 'ghost'}
             className="w-full justify-start"
-            onClick={() => setCurrentNote(note)}
+            onClick={() => switchToNote(note, currentTitle, currentContent)}
           >
             {note.title || 'Untitled Note'}
           </Button>
