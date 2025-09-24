@@ -129,6 +129,10 @@ export default function ScratchpadCard() {
 
   // Autosave timeout ref
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Refs to capture latest title and content for cleanup
+  const titleRef = useRef(title);
+  const contentRef = useRef(content);
 
   // Update local state when currentNote changes
   useEffect(() => {
@@ -140,6 +144,12 @@ export default function ScratchpadCard() {
       setTitle('');
     }
   }, [currentNote]);
+
+  // Keep refs updated with latest values
+  useEffect(() => {
+    titleRef.current = title;
+    contentRef.current = content;
+  }, [title, content]);
 
   // Debounced autosave function
   const debouncedAutoSave = useCallback((title: string, content: string) => {
@@ -206,12 +216,12 @@ export default function ScratchpadCard() {
   // Save on component unmount
   useEffect(() => {
     return () => {
-      // Save when component unmounts
-      if (content.trim()) {
-        immediateSave(title, content);
+      // Save when component unmounts - use refs to get latest values
+      if (contentRef.current.trim()) {
+        immediateSave(titleRef.current, contentRef.current);
       }
     };
-  }, [title, content, immediateSave]);
+  }, [immediateSave]);
 
   const handleSave = async () => {
     if (!title.trim() && !content.trim()) return;
