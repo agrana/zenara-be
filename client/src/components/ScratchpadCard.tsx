@@ -202,7 +202,7 @@ export default function ScratchpadCard() {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -247,11 +247,13 @@ export default function ScratchpadCard() {
     }
   };
 
-  const handleNewNote = () => {
+  const handleNewNote = async () => {
+    // Save current note before creating new one
+    if (content.trim()) {
+      await immediateSave(title, content);
+    }
     setTitle('');
     setContent('');
-    // Optionally, clear currentNote in the store if needed
-    // setCurrentNote(null);
   };
 
   return (
@@ -267,7 +269,7 @@ export default function ScratchpadCard() {
           className="m-4 mb-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-base focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <div className="flex-1 overflow-y-auto">
-          <ScratchpadList searchText={searchText} />
+          <ScratchpadList searchText={searchText} currentTitle={title} currentContent={content} />
         </div>
       </div>
 
@@ -363,13 +365,6 @@ export default function ScratchpadCard() {
                     <Loader2 className="h-4 w-4 animate-spin mr-1" />
                   ) : null}
                   Save
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleNewNote}
-                >
-                  New
                 </Button>
                 <Button
                   size="sm"

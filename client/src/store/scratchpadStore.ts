@@ -39,6 +39,7 @@ export interface ScratchpadState {
   // Autosave actions
   autoSaveNote: (title: string, content: string) => Promise<void>;
   immediateSave: (title: string, content: string) => Promise<void>;
+  switchToNote: (note: Note | null, currentTitle: string, currentContent: string) => Promise<void>;
   setAutoSaveError: (error: string | null) => void;
 
   // Format templates
@@ -198,10 +199,10 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
     if (!content.trim() || get().isAutoSaving) return;
 
     set({ isAutoSaving: true, autoSaveError: null });
-    
+
     try {
       const { currentNote } = get();
-      
+
       if (currentNote) {
         // Update existing note
         const { data, error } = await supabase
@@ -212,7 +213,7 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
           .single();
 
         if (error) throw error;
-        
+
         set({
           notes: get().notes.map(note => note.id === currentNote.id ? data : note),
           currentNote: data,
@@ -229,7 +230,7 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
             .single();
 
           if (error) throw error;
-          
+
           set({
             notes: [data, ...get().notes],
             currentNote: data,
@@ -242,9 +243,9 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
       }
     } catch (error) {
       console.error('Error autosaving note:', error);
-      set({ 
-        isAutoSaving: false, 
-        autoSaveError: 'Failed to autosave note' 
+      set({
+        isAutoSaving: false,
+        autoSaveError: 'Failed to autosave note'
       });
     }
   },
@@ -255,7 +256,7 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
 
     try {
       const { currentNote } = get();
-      
+
       if (currentNote) {
         // Update existing note
         const { data, error } = await supabase
@@ -266,7 +267,7 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
           .single();
 
         if (error) throw error;
-        
+
         set({
           notes: get().notes.map(note => note.id === currentNote.id ? data : note),
           currentNote: data,
@@ -281,7 +282,7 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
           .single();
 
         if (error) throw error;
-        
+
         set({
           notes: [data, ...get().notes],
           currentNote: data,
@@ -292,6 +293,15 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
       console.error('Error in immediate save:', error);
       set({ autoSaveError: 'Failed to save note immediately' });
     }
+  },
+
+  switchToNote: async (note: Note | null, currentTitle: string, currentContent: string) => {
+    // Save current note before switching
+    if (currentContent.trim()) {
+      await get().immediateSave(currentTitle, currentContent);
+    }
+    // Then switch to the new note
+    set({ currentNote: note });
   },
 
   setAutoSaveError: (error) => set({ autoSaveError: error })
