@@ -59,7 +59,7 @@ export const usePromptStore = create<PromptState>()((set, get) => ({
     try {
       const url = userId ? `/api/prompts/user/${userId}` : '/api/prompts/user';
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         // If the endpoint doesn't exist yet, fall back to default prompts
         if (response.status === 404) {
@@ -69,15 +69,15 @@ export const usePromptStore = create<PromptState>()((set, get) => ({
         }
         throw new Error('Failed to fetch prompts');
       }
-      
+
       const prompts = await response.json();
       set({ prompts, isLoading: false });
     } catch (error) {
       console.error('Error fetching prompts:', error);
       // Don't show error to user, just use empty prompts (defaults will still work)
-      set({ 
+      set({
         prompts: [],
-        isLoading: false 
+        isLoading: false
       });
     }
   },
@@ -110,7 +110,7 @@ export const usePromptStore = create<PromptState>()((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await fetch('/api/prompts/templates/types');
-      
+
       if (!response.ok) {
         // If the endpoint doesn't exist yet, use hardcoded template types
         if (response.status === 404) {
@@ -130,7 +130,7 @@ export const usePromptStore = create<PromptState>()((set, get) => ({
         }
         throw new Error('Failed to fetch template types');
       }
-      
+
       const templateTypes = await response.json();
       set({ templateTypes, isLoading: false });
     } catch (error) {
@@ -146,9 +146,9 @@ export const usePromptStore = create<PromptState>()((set, get) => ({
         translate: { name: 'Language Translation', description: 'Translates content to different languages while preserving meaning' },
         default: { name: 'General Note Enhancement', description: 'General purpose enhancement for any type of note' }
       };
-      set({ 
+      set({
         templateTypes: defaultTypes,
-        isLoading: false 
+        isLoading: false
       });
     }
   },
