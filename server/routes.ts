@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ProcessingService } from "./processingService";
+import { PromptService } from "./promptService";
 import OpenAI from "openai";
 import { z } from "zod";
 import type { InsertTask, InsertPomodoroSession, InsertScratchpad, InsertSettings } from "@shared/schema";
@@ -290,7 +291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Note processing endpoints
   app.post('/api/process-note', async (req, res) => {
     try {
-      const { content, promptType, customPrompt } = req.body;
+      const { content, promptId, promptType, customPrompt, userId } = req.body;
 
       if (!content || typeof content !== 'string') {
         return res.status(400).json({ error: 'Content is required' });
@@ -298,8 +299,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const processingService = ProcessingService.getInstance();
       const result = await processingService.processNote(content, {
+        promptId,
         promptType: promptType || 'default',
-        customPrompt
+        customPrompt,
+        userId
       });
 
       if (result.success) {
@@ -316,7 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Streaming note processing endpoint
   app.post('/api/process-note-stream', async (req, res) => {
     try {
-      const { content, promptType, customPrompt } = req.body;
+      const { content, promptId, promptType, customPrompt, userId } = req.body;
 
       if (!content || typeof content !== 'string') {
         return res.status(400).json({ error: 'Content is required' });
@@ -331,8 +334,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const processingService = ProcessingService.getInstance();
       const stream = await processingService.processNoteStream(content, {
+        promptId,
         promptType: promptType || 'default',
-        customPrompt
+        customPrompt,
+        userId
       });
 
       // Pipe the stream to the response
@@ -363,6 +368,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error getting prompts:', error);
       res.status(500).json({ error: 'Failed to get prompts' });
+    }
+  });
+
+  // Prompt management endpoints
+  app.get('/api/prompts/user/:userId?', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const promptService = PromptService.getInstance();
+      const prompts = await promptService.getUserPrompts(userId);
+      res.json(prompts);
+    } catch (error) {
+      console.error('Error getting user prompts:', error);
+      res.status(500).json({ error: 'Failed to get user prompts' });
+    }
+  });
+
+  app.get('/api/prompts/template/:templateType', async (req, res) => {
+    try {
+      const { templateType } = req.params;
+      const { userId } = req.query;
+      const promptService = PromptService.getInstance();
+      const prompts = await promptService.getPromptsByType(templateType, userId as string);
+      res.json(prompts);
+    } catch (error) {
+      console.error('Error getting prompts by type:', error);
+      res.status(500).json({ error: 'Failed to get prompts by type' });
+    }
+  });
+
+  app.get('/api/prompts/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const promptService = PromptService.getInstance();
+      const prompt = await promptService.getPromptById(id);
+      if (prompt) {
+        res.json(prompt);
+      } else {
+        res.status(404).json({ error: 'Prompt not found' });
+      }
+    } catch (error) {
+      console.error('Error getting prompt by ID:', error);
+      res.status(500).json({ error: 'Failed to get prompt' });
+    }
+  });
+
+  app.post('/api/prompts', async (req, res) => {
+    try {
+      const { userId, name, templateType, promptText, isDefault } = req.body;
+
+      if (!name || !templateType || !promptText) {
+        return res.status(400).json({ error: 'Name, templateType, and promptText are required' });
+      }
+
+      const promptService = PromptService.getInstance();
+      const prompt = await promptService.createPrompt({
+        userId,
+        name,
+        templateType,
+        promptText,
+        isDefault
+      });
+
+      res.status(201).json(prompt);
+    } catch (error) {
+      console.error('Error creating prompt:', error);
+      res.status(500).json({ error: 'Failed to create prompt' });
+    }
+  });
+
+  app.put('/api/prompts/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, promptText, isActive } = req.body;
+
+      const promptService = PromptService.getInstance();
+      const prompt = await promptService.updatePrompt(id, {
+        name,
+        promptText,
+        isActive
+      });
+
+      res.json(prompt);
+    } catch (error) {
+      console.error('Error updating prompt:', error);
+      res.status(500).json({ error: 'Failed to update prompt' });
+    }
+  });
+
+  app.delete('/api/prompts/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const promptService = PromptService.getInstance();
+      await promptService.deletePrompt(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting prompt:', error);
+      res.status(500).json({ error: 'Failed to delete prompt' });
+    }
+  });
+
+  app.get('/api/prompts/templates/types', async (req, res) => {
+    try {
+      const promptService = PromptService.getInstance();
+      const templateTypes = promptService.getTemplateTypes();
+      res.json(templateTypes);
+    } catch (error) {
+      console.error('Error getting template types:', error);
+      res.status(500).json({ error: 'Failed to get template types' });
     }
   });
 

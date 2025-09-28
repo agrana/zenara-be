@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useScratchpadStore, type FormatType } from "@/store/scratchpadStore";
+import { usePromptStore } from "@/store/promptStore";
 import { useAppStore } from "@/store/appStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -102,7 +103,10 @@ export default function ScratchpadCard() {
   const [title, setTitle] = useState('');
   const [isViewerMode, setIsViewerMode] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [selectedPromptId, setSelectedPromptId] = useState<string>('');
   const { darkMode } = useAppStore();
+
+  const { prompts, fetchPrompts } = usePromptStore();
 
   const {
     currentNote,
@@ -138,6 +142,11 @@ export default function ScratchpadCard() {
   // Refs to capture latest title and content for cleanup
   const titleRef = useRef(title);
   const contentRef = useRef(content);
+
+  // Fetch prompts on component mount
+  useEffect(() => {
+    fetchPrompts();
+  }, [fetchPrompts]);
 
   // Update local state when currentNote changes
   useEffect(() => {
@@ -379,6 +388,25 @@ export default function ScratchpadCard() {
                   </SelectContent>
                 </Select>
 
+                <Select
+                  value={selectedPromptId}
+                  onValueChange={setSelectedPromptId}
+                >
+                  <SelectTrigger className="text-sm">
+                    <SelectValue placeholder="Select prompt" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Use format default</SelectItem>
+                    {prompts
+                      .filter(prompt => prompt.templateType === format || prompt.templateType === 'default')
+                      .map((prompt) => (
+                        <SelectItem key={prompt.id} value={prompt.id}>
+                          {prompt.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+
                 {/* Button group: Save, New, View, Process */}
                 <Button
                   size="sm"
@@ -401,7 +429,7 @@ export default function ScratchpadCard() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => processContentStream(content, format)}
+                  onClick={() => processContentStream(content, format, undefined, selectedPromptId || undefined)}
                   disabled={isProcessingStream || !content}
                 >
                   {isProcessingStream ? (
