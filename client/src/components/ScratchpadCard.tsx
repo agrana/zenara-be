@@ -114,22 +114,27 @@ export default function ScratchpadCard() {
     isAutoSaving,
     lastAutoSaved,
     autoSaveError,
+    isProcessingStream,
+    processingProgress,
+    processingError,
     setFormat,
     setProcessedContent,
     setIsProcessing,
     processContent,
+    processContentStream,
     getFormatTemplate,
     createNote,
     updateNote,
     deleteNote,
     autoSaveNote,
     immediateSave,
-    setAutoSaveError
+    setAutoSaveError,
+    setProcessingError
   } = useScratchpadStore();
 
   // Autosave timeout ref
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Refs to capture latest title and content for cleanup
   const titleRef = useRef(title);
   const contentRef = useRef(content);
@@ -329,6 +334,26 @@ export default function ScratchpadCard() {
                 </div>
               )}
 
+              {/* Processing status indicators */}
+              {processingError && (
+                <div className="mb-4 p-2 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded text-sm">
+                  Processing failed: {processingError}
+                  <button
+                    onClick={() => setProcessingError(null)}
+                    className="ml-2 text-red-800 dark:text-red-300 hover:underline"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {isProcessingStream && (
+                <div className="mb-4 p-2 bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded text-sm flex items-center">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  {processingProgress}
+                </div>
+              )}
+
               <div className="flex flex-wrap gap-1 items-center mb-4">
                 <input
                   type="text"
@@ -376,10 +401,10 @@ export default function ScratchpadCard() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => processContent()}
-                  disabled={isProcessing || !content}
+                  onClick={() => processContentStream(content, format)}
+                  disabled={isProcessingStream || !content}
                 >
-                  {isProcessing ? (
+                  {isProcessingStream ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-1" />
                   ) : (
                     <Wand2 className="h-4 w-4 mr-1" />
@@ -412,14 +437,14 @@ export default function ScratchpadCard() {
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
                   </div>
                 ) : (
-                  <div className="h-full">
+                  <div className="h-full flex flex-col">
                     <MDEditor
                       value={content}
                       onChange={handleContentChange}
                       preview="edit"
                       height="100%"
                       visibleDragbar={false}
-                      className="bg-white dark:bg-slate-700 h-full"
+                      className="bg-white dark:bg-slate-700 flex-1"
                       style={{ height: '100%' }}
                       data-color-mode={darkMode ? 'dark' : 'light'}
                       commands={[
@@ -451,6 +476,39 @@ export default function ScratchpadCard() {
                       ]}
                       extraCommands={[]}
                     />
+
+                    {/* Processed content preview */}
+                    {processedContent && (
+                      <div className="border-t border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800">
+                        <div className="p-3 border-b border-slate-300 dark:border-slate-600 flex items-center justify-between">
+                          <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            Processed Preview
+                          </h3>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setContent(processedContent);
+                                setProcessedContent(null);
+                              }}
+                            >
+                              Apply
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setProcessedContent(null)}
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="p-4 max-h-48 overflow-auto prose dark:prose-invert text-sm">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{processedContent}</ReactMarkdown>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

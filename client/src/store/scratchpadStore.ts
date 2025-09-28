@@ -25,6 +25,11 @@ export interface ScratchpadState {
   lastAutoSaved: Date | null;
   autoSaveError: string | null;
 
+  // Processing state
+  isProcessingStream: boolean;
+  processingProgress: string;
+  processingError: string | null;
+
   // Actions
   fetchNotes: () => Promise<void>;
   createNote: (title: string, content: string) => Promise<void>;
@@ -41,6 +46,10 @@ export interface ScratchpadState {
   immediateSave: (title: string, content: string) => Promise<void>;
   switchToNote: (note: Note | null, currentTitle: string, currentContent: string) => Promise<void>;
   setAutoSaveError: (error: string | null) => void;
+
+  // Processing actions
+  processContentStream: (content: string, promptType?: string, customPrompt?: string) => Promise<void>;
+  setProcessingError: (error: string | null) => void;
 
   // Format templates
   getFormatTemplate: (format: FormatType) => string;
@@ -59,6 +68,11 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
   isAutoSaving: false,
   lastAutoSaved: null,
   autoSaveError: null,
+
+  // Processing state
+  isProcessingStream: false,
+  processingProgress: '',
+  processingError: null,
 
   fetchNotes: async () => {
     set({ isLoading: true, error: null });
@@ -304,5 +318,95 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
     set({ currentNote: note });
   },
 
-  setAutoSaveError: (error) => set({ autoSaveError: error })
+  setAutoSaveError: (error) => set({ autoSaveError: error }),
+
+  // Processing functions
+  processContentStream: async (content: string, promptType = 'default', customPrompt?: string) => {
+    if (!content.trim()) return;
+
+    set({
+      isProcessingStream: true,
+      processingProgress: '',
+      processingError: null,
+      processedContent: null
+    });
+
+    try {
+      const response = await fetch('/api/process-note-stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content,
+          promptType,
+          customPrompt
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start processing');
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response stream available');
+      }
+
+      const decoder = new TextDecoder();
+      let processedContent = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+
+                switch (data.type) {
+                  case 'start':
+                    set({ processingProgress: 'Starting processing...' });
+                    break;
+                  case 'chunk':
+                    processedContent += data.content;
+                    set({
+                      processingProgress: 'Processing...',
+                      processedContent
+                    });
+                    break;
+                  case 'complete':
+                    set({
+                      isProcessingStream: false,
+                      processingProgress: 'Processing complete!',
+                      processedContent
+                    });
+                    break;
+                  case 'error':
+                    throw new Error(data.error || 'Processing failed');
+                }
+              } catch (parseError) {
+                console.warn('Failed to parse SSE data:', parseError);
+              }
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    } catch (error) {
+      console.error('Error in streaming processing:', error);
+      set({
+        isProcessingStream: false,
+        processingError: error instanceof Error ? error.message : 'Processing failed'
+      });
+    }
+  },
+
+  setProcessingError: (error) => set({ processingError: error })
 }));

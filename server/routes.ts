@@ -1,13 +1,14 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { ProcessingService } from "./processingService";
 import OpenAI from "openai";
 import { z } from "zod";
 import type { InsertTask, InsertPomodoroSession, InsertScratchpad, InsertSettings } from "@shared/schema";
 
 // Initialize OpenAI client with API key fallback
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "" 
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || ""
 });
 
 // Define Zod schemas for validation
@@ -59,22 +60,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/process-content", async (req, res) => {
     try {
       const { content, format } = req.body;
-      
+
       if (!content) {
         return res.status(400).json({ error: "Content is required" });
       }
-      
+
       // If no OpenAI API key, respond with error
       if (!process.env.OPENAI_API_KEY && !process.env.OPENAI_KEY) {
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: "OpenAI API key not configured",
-          processedContent: content 
+          processedContent: content
         });
       }
-      
+
       // Define system prompts based on format
       let systemPrompt = "";
-      
+
       switch (format) {
         case "diary":
           systemPrompt = "You're helping organize a personal diary entry. Structure the text with proper formatting, fix any typos, and organize thoughts clearly. Use markdown for headings and lists. Keep the personal tone intact.";
@@ -91,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         default:
           systemPrompt = "Improve this text by organizing it with proper markdown structure. Fix minor typos and formatting issues while preserving the original content and meaning.";
       }
-      
+
       // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -102,15 +103,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         temperature: 0.7,
         max_tokens: 1500,
       });
-      
+
       const processedContent = response.choices[0].message.content;
-      
+
       res.json({ processedContent });
     } catch (error) {
       console.error("Error processing content:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to process content",
-        processedContent: req.body.content 
+        processedContent: req.body.content
       });
     }
   });
@@ -147,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!validation.success) {
         return res.status(400).json({ error: validation.error });
       }
-      
+
       const task = await storage.createTask(validation.data);
       res.status(201).json(task);
     } catch (error) {
@@ -203,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!validation.success) {
         return res.status(400).json({ error: validation.error });
       }
-      
+
       const session = await storage.createPomodoroSession(validation.data);
       res.status(201).json(session);
     } catch (error) {
@@ -247,7 +248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!validation.success) {
         return res.status(400).json({ error: validation.error });
       }
-      
+
       const scratchpad = await storage.createOrUpdateScratchpad(validation.data);
       res.status(201).json(scratchpad);
     } catch (error) {
@@ -277,12 +278,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!validation.success) {
         return res.status(400).json({ error: validation.error });
       }
-      
+
       const settings = await storage.createOrUpdateSettings(validation.data);
       res.status(201).json(settings);
     } catch (error) {
       console.error('Error saving settings:', error);
       res.status(500).json({ error: 'Failed to save settings' });
+    }
+  });
+
+  // Note processing endpoints
+  app.post('/api/process-note', async (req, res) => {
+    try {
+      const { content, promptType, customPrompt } = req.body;
+
+      if (!content || typeof content !== 'string') {
+        return res.status(400).json({ error: 'Content is required' });
+      }
+
+      const processingService = ProcessingService.getInstance();
+      const result = await processingService.processNote(content, {
+        promptType: promptType || 'default',
+        customPrompt
+      });
+
+      if (result.success) {
+        res.json(result);
+      } else {
+        res.status(500).json(result);
+      }
+    } catch (error) {
+      console.error('Error processing note:', error);
+      res.status(500).json({ error: 'Failed to process note' });
+    }
+  });
+
+  // Streaming note processing endpoint
+  app.post('/api/process-note-stream', async (req, res) => {
+    try {
+      const { content, promptType, customPrompt } = req.body;
+
+      if (!content || typeof content !== 'string') {
+        return res.status(400).json({ error: 'Content is required' });
+      }
+
+      // Set headers for Server-Sent Events
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Headers', 'Cache-Control');
+
+      const processingService = ProcessingService.getInstance();
+      const stream = await processingService.processNoteStream(content, {
+        promptType: promptType || 'default',
+        customPrompt
+      });
+
+      // Pipe the stream to the response
+      const reader = stream.getReader();
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          res.write(value);
+        }
+      } finally {
+        reader.releaseLock();
+        res.end();
+      }
+    } catch (error) {
+      console.error('Error in streaming processing:', error);
+      res.status(500).json({ error: 'Failed to process note' });
+    }
+  });
+
+  // Get available prompts
+  app.get('/api/prompts', async (req, res) => {
+    try {
+      const processingService = ProcessingService.getInstance();
+      const prompts = processingService.getAvailablePrompts();
+      res.json(prompts);
+    } catch (error) {
+      console.error('Error getting prompts:', error);
+      res.status(500).json({ error: 'Failed to get prompts' });
     }
   });
 
