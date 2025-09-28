@@ -396,7 +396,7 @@ export default function ScratchpadCard() {
                     <SelectValue placeholder="Select prompt" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Use format default</SelectItem>
+                    <SelectItem value="default">Use format default</SelectItem>
                     {prompts
                       .filter(prompt => prompt.templateType === format || prompt.templateType === 'default')
                       .map((prompt) => (
@@ -429,7 +429,7 @@ export default function ScratchpadCard() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => processContentStream(content, format, undefined, selectedPromptId || undefined)}
+                  onClick={() => processContentStream(content, format, undefined, selectedPromptId === 'default' ? undefined : selectedPromptId)}
                   disabled={isProcessingStream || !content}
                 >
                   {isProcessingStream ? (
