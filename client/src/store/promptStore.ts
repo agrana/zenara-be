@@ -1,0 +1,241 @@
+import { create } from 'zustand';
+
+export interface Prompt {
+  id: string;
+  userId?: string;
+  name: string;
+  templateType: string;
+  promptText: string;
+  isDefault: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePromptData {
+  userId?: string;
+  name: string;
+  templateType: string;
+  promptText: string;
+  isDefault?: boolean;
+}
+
+export interface UpdatePromptData {
+  name?: string;
+  promptText?: string;
+  isActive?: boolean;
+}
+
+export interface TemplateType {
+  name: string;
+  description: string;
+}
+
+export interface PromptState {
+  prompts: Prompt[];
+  templateTypes: Record<string, TemplateType>;
+  isLoading: boolean;
+  error: string | null;
+
+  // Actions
+  fetchPrompts: (userId?: string) => Promise<void>;
+  fetchPromptsByType: (templateType: string, userId?: string) => Promise<void>;
+  fetchTemplateTypes: () => Promise<void>;
+  createPrompt: (data: CreatePromptData) => Promise<Prompt>;
+  updatePrompt: (id: string, data: UpdatePromptData) => Promise<Prompt>;
+  deletePrompt: (id: string) => Promise<void>;
+  getPromptById: (id: string) => Promise<Prompt | null>;
+  setError: (error: string | null) => void;
+}
+
+export const usePromptStore = create<PromptState>()((set, get) => ({
+  prompts: [],
+  templateTypes: {},
+  isLoading: false,
+  error: null,
+
+  fetchPrompts: async (userId?: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const url = userId ? `/api/prompts/user/${userId}` : '/api/prompts/user';
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch prompts');
+      }
+
+      const prompts = await response.json();
+      set({ prompts, isLoading: false });
+    } catch (error) {
+      console.error('Error fetching prompts:', error);
+      set({
+        error: error instanceof Error ? error.message : 'Failed to fetch prompts',
+        isLoading: false
+      });
+    }
+  },
+
+  fetchPromptsByType: async (templateType: string, userId?: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const url = userId
+        ? `/api/prompts/template/${templateType}?userId=${userId}`
+        : `/api/prompts/template/${templateType}`;
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch prompts by type');
+      }
+
+      const prompts = await response.json();
+      set({ prompts, isLoading: false });
+    } catch (error) {
+      console.error('Error fetching prompts by type:', error);
+      set({
+        error: error instanceof Error ? error.message : 'Failed to fetch prompts by type',
+        isLoading: false
+      });
+    }
+  },
+
+  fetchTemplateTypes: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await fetch('/api/prompts/templates/types');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch template types');
+      }
+
+      const templateTypes = await response.json();
+      set({ templateTypes, isLoading: false });
+    } catch (error) {
+      console.error('Error fetching template types:', error);
+      set({
+        error: error instanceof Error ? error.message : 'Failed to fetch template types',
+        isLoading: false
+      });
+    }
+  },
+
+  createPrompt: async (data: CreatePromptData) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await fetch('/api/prompts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create prompt');
+      }
+
+      const prompt = await response.json();
+
+      // Add to local state
+      set(state => ({
+        prompts: [prompt, ...state.prompts],
+        isLoading: false
+      }));
+
+      return prompt;
+    } catch (error) {
+      console.error('Error creating prompt:', error);
+      set({
+        error: error instanceof Error ? error.message : 'Failed to create prompt',
+        isLoading: false
+      });
+      throw error;
+    }
+  },
+
+  updatePrompt: async (id: string, data: UpdatePromptData) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await fetch(`/api/prompts/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update prompt');
+      }
+
+      const updatedPrompt = await response.json();
+
+      // Update local state
+      set(state => ({
+        prompts: state.prompts.map(prompt =>
+          prompt.id === id ? updatedPrompt : prompt
+        ),
+        isLoading: false
+      }));
+
+      return updatedPrompt;
+    } catch (error) {
+      console.error('Error updating prompt:', error);
+      set({
+        error: error instanceof Error ? error.message : 'Failed to update prompt',
+        isLoading: false
+      });
+      throw error;
+    }
+  },
+
+  deletePrompt: async (id: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await fetch(`/api/prompts/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete prompt');
+      }
+
+      // Remove from local state
+      set(state => ({
+        prompts: state.prompts.filter(prompt => prompt.id !== id),
+        isLoading: false
+      }));
+    } catch (error) {
+      console.error('Error deleting prompt:', error);
+      set({
+        error: error instanceof Error ? error.message : 'Failed to delete prompt',
+        isLoading: false
+      });
+      throw error;
+    }
+  },
+
+  getPromptById: async (id: string) => {
+    try {
+      const response = await fetch(`/api/prompts/${id}`);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error('Failed to get prompt');
+      }
+
+      const prompt = await response.json();
+      return prompt;
+    } catch (error) {
+      console.error('Error getting prompt by ID:', error);
+      set({
+        error: error instanceof Error ? error.message : 'Failed to get prompt'
+      });
+      return null;
+    }
+  },
+
+  setError: (error) => set({ error })
+}));

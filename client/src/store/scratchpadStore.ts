@@ -48,7 +48,7 @@ export interface ScratchpadState {
   setAutoSaveError: (error: string | null) => void;
 
   // Processing actions
-  processContentStream: (content: string, promptType?: string, customPrompt?: string) => Promise<void>;
+  processContentStream: (content: string, promptType?: string, customPrompt?: string, promptId?: string) => Promise<void>;
   setProcessingError: (error: string | null) => void;
 
   // Format templates
@@ -321,7 +321,7 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
   setAutoSaveError: (error) => set({ autoSaveError: error }),
 
   // Processing functions
-  processContentStream: async (content: string, promptType = 'default', customPrompt?: string) => {
+  processContentStream: async (content: string, promptType = 'default', customPrompt?: string, promptId?: string) => {
     if (!content.trim()) return;
 
     set({
@@ -340,7 +340,8 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
         body: JSON.stringify({
           content,
           promptType,
-          customPrompt
+          customPrompt,
+          promptId
         }),
       });
 

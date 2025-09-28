@@ -1,6 +1,7 @@
 import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { StringOutputParser } from '@langchain/core/output_parsers';
+import { PromptService } from './promptService';
 
 // Initialize OpenAI with streaming support
 const llm = new ChatOpenAI({
@@ -85,7 +86,8 @@ Enhanced version:`
 };
 
 export interface ProcessingOptions {
-  promptType: keyof typeof PREDEFINED_PROMPTS;
+  promptId?: string;
+  promptType?: string;
   customPrompt?: string;
   userId?: string;
 }
@@ -116,8 +118,35 @@ export class ProcessingService {
   ): Promise<ReadableStream<Uint8Array>> {
     try {
       // Get the prompt template
-      const promptConfig = PREDEFINED_PROMPTS[options.promptType] || PREDEFINED_PROMPTS.default;
-      const promptTemplate = options.customPrompt || promptConfig.template;
+      let promptTemplate = options.customPrompt;
+      let promptName = 'Custom Prompt';
+
+      if (!promptTemplate) {
+        const promptService = PromptService.getInstance();
+
+        if (options.promptId) {
+          // Get specific prompt by ID
+          const prompt = await promptService.getPromptById(options.promptId);
+          if (prompt) {
+            promptTemplate = prompt.promptText;
+            promptName = prompt.name;
+          }
+        } else if (options.promptType) {
+          // Get default prompt by type
+          const prompt = await promptService.getPromptById(`default_${options.promptType}`);
+          if (prompt) {
+            promptTemplate = prompt.promptText;
+            promptName = prompt.name;
+          }
+        }
+
+        // Fallback to default
+        if (!promptTemplate) {
+          const defaultPrompt = await promptService.getPromptById('default_default');
+          promptTemplate = defaultPrompt?.promptText || PREDEFINED_PROMPTS.default.template;
+          promptName = 'General Note Enhancement';
+        }
+      }
 
       // Create the prompt template
       const prompt = PromptTemplate.fromTemplate(promptTemplate);
@@ -134,7 +163,7 @@ export class ProcessingService {
             // Send initial metadata
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'start',
-              promptUsed: promptConfig.name
+              promptUsed: promptName
             })}\n\n`));
 
             // Stream the response
@@ -179,8 +208,33 @@ export class ProcessingService {
     options: ProcessingOptions
   ): Promise<ProcessingResult> {
     try {
-      const promptConfig = PREDEFINED_PROMPTS[options.promptType] || PREDEFINED_PROMPTS.default;
-      const promptTemplate = options.customPrompt || promptConfig.template;
+      // Get the prompt template (same logic as streaming)
+      let promptTemplate = options.customPrompt;
+      let promptName = 'Custom Prompt';
+
+      if (!promptTemplate) {
+        const promptService = PromptService.getInstance();
+
+        if (options.promptId) {
+          const prompt = await promptService.getPromptById(options.promptId);
+          if (prompt) {
+            promptTemplate = prompt.promptText;
+            promptName = prompt.name;
+          }
+        } else if (options.promptType) {
+          const prompt = await promptService.getPromptById(`default_${options.promptType}`);
+          if (prompt) {
+            promptTemplate = prompt.promptText;
+            promptName = prompt.name;
+          }
+        }
+
+        if (!promptTemplate) {
+          const defaultPrompt = await promptService.getPromptById('default_default');
+          promptTemplate = defaultPrompt?.promptText || PREDEFINED_PROMPTS.default.template;
+          promptName = 'General Note Enhancement';
+        }
+      }
 
       const prompt = PromptTemplate.fromTemplate(promptTemplate);
       const chain = prompt.pipe(llm).pipe(new StringOutputParser());
@@ -192,7 +246,7 @@ export class ProcessingService {
       return {
         success: true,
         processedContent: result,
-        promptUsed: promptConfig.name
+        promptUsed: promptName
       };
     } catch (error) {
       console.error('Processing error:', error);
@@ -208,5 +262,12 @@ export class ProcessingService {
    */
   getAvailablePrompts(): Record<string, { name: string; template: string }> {
     return PREDEFINED_PROMPTS;
+  }
+
+  /**
+   * Get prompt service instance
+   */
+  getPromptService(): PromptService {
+    return PromptService.getInstance();
   }
 }
