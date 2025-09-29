@@ -351,12 +351,12 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
 
       // Handle non-streaming response from Netlify function
       const result = await response.json();
-      
+
       if (result.success) {
-        set({ 
+        set({
           isProcessingStream: false,
           processingProgress: 'Processing complete!',
-          processedContent: result.processedContent 
+          processedContent: result.processedContent
         });
       } else {
         throw new Error(result.error || 'Processing failed');
