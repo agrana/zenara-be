@@ -57,7 +57,7 @@ export const usePromptStore = create<PromptState>()((set, get) => ({
   fetchPrompts: async (userId?: string) => {
     set({ isLoading: true, error: null });
     try {
-      const url = userId ? `/api/prompts/user/${userId}` : '/api/prompts/user';
+      const url = '/.netlify/functions/prompts';
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -93,9 +93,7 @@ export const usePromptStore = create<PromptState>()((set, get) => ({
   fetchPromptsByType: async (templateType: string, userId?: string) => {
     set({ isLoading: true, error: null });
     try {
-      const url = userId
-        ? `/api/prompts/template/${templateType}?userId=${userId}`
-        : `/api/prompts/template/${templateType}`;
+      const url = '/.netlify/functions/prompts';
 
       const response = await fetch(url);
 
@@ -117,7 +115,7 @@ export const usePromptStore = create<PromptState>()((set, get) => ({
   fetchTemplateTypes: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch('/api/prompts/templates/types');
+      const response = await fetch('/.netlify/functions/prompts-templates');
 
       if (!response.ok) {
         // If the endpoint doesn't exist yet, use hardcoded template types
@@ -182,7 +180,7 @@ export const usePromptStore = create<PromptState>()((set, get) => ({
   createPrompt: async (data: CreatePromptData) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch('/api/prompts', {
+      const response = await fetch('/.netlify/functions/prompts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -216,7 +214,7 @@ export const usePromptStore = create<PromptState>()((set, get) => ({
   updatePrompt: async (id: string, data: UpdatePromptData) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch(`/api/prompts/${id}`, {
+      const response = await fetch(`/.netlify/functions/prompts`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -252,7 +250,7 @@ export const usePromptStore = create<PromptState>()((set, get) => ({
   deletePrompt: async (id: string) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch(`/api/prompts/${id}`, {
+      const response = await fetch(`/.netlify/functions/prompts`, {
         method: 'DELETE',
       });
 
@@ -277,7 +275,7 @@ export const usePromptStore = create<PromptState>()((set, get) => ({
 
   getPromptById: async (id: string) => {
     try {
-      const response = await fetch(`/api/prompts/${id}`);
+      const response = await fetch(`/.netlify/functions/prompts`);
 
       if (!response.ok) {
         if (response.status === 404) {
