@@ -1,6 +1,18 @@
-// LangChain processing function for Netlify
-const { ChatOpenAI } = require('@langchain/openai');
-const { PromptTemplate } = require('langchain/prompts');
+// LangChain processing function for Netlify with fallback
+let ChatOpenAI, PromptTemplate;
+
+try {
+  // Try to import LangChain modules
+  const langchainOpenAI = require('@langchain/openai');
+  const langchainPrompts = require('langchain/prompts');
+  ChatOpenAI = langchainOpenAI.ChatOpenAI;
+  PromptTemplate = langchainPrompts.PromptTemplate;
+  console.log('LangChain modules loaded successfully');
+} catch (error) {
+  console.warn('LangChain modules not available, will use direct API calls:', error.message);
+  ChatOpenAI = null;
+  PromptTemplate = null;
+}
 
 exports.handler = async (event, context) => {
   console.log('Processing function called:', {
@@ -126,36 +138,83 @@ Enhanced version:`
       const temperature = parseFloat(process.env.LLM_TEMPERATURE || '0.7');
       const maxTokens = parseInt(process.env.LLM_MAX_TOKENS || '1000');
       
-      let llm;
-      
-      // Initialize the LLM based on provider
-      if (provider === 'openai') {
-        llm = new ChatOpenAI({
-          openAIApiKey: openaiApiKey,
-          modelName: modelName,
-          temperature: temperature,
-          maxTokens: maxTokens
-        });
-      } else {
-        throw new Error(`Unsupported provider: ${provider}. Currently only 'openai' is supported.`);
-      }
-
       // Get the appropriate prompt template
       const promptTemplate = promptTemplates[promptType] || promptTemplates.default;
       
-      // Create the prompt using LangChain
-      const prompt = PromptTemplate.fromTemplate(promptTemplate);
+      let processedContent;
+      let processingMethod;
       
-      // Format the prompt with the content
-      const formattedPrompt = await prompt.format({ content });
-      
-      console.log(`Calling ${provider} API with model: ${modelName}...`);
-      
-      // Call the LLM using LangChain
-      const response = await llm.invoke(formattedPrompt);
-      const processedContent = response.content;
-      
-      console.log(`LangChain processing completed successfully with ${provider}/${modelName}`);
+      // Try LangChain first if available
+      if (ChatOpenAI && PromptTemplate && provider === 'openai') {
+        try {
+          console.log('Using LangChain for processing...');
+          
+          // Initialize the LLM
+          const llm = new ChatOpenAI({
+            openAIApiKey: openaiApiKey,
+            modelName: modelName,
+            temperature: temperature,
+            maxTokens: maxTokens
+          });
+          
+          // Create the prompt using LangChain
+          const prompt = PromptTemplate.fromTemplate(promptTemplate);
+          
+          // Format the prompt with the content
+          const formattedPrompt = await prompt.format({ content });
+          
+          console.log(`Calling ${provider} API with model: ${modelName} via LangChain...`);
+          
+          // Call the LLM using LangChain
+          const response = await llm.invoke(formattedPrompt);
+          processedContent = response.content;
+          processingMethod = 'LangChain';
+          
+          console.log(`LangChain processing completed successfully with ${provider}/${modelName}`);
+        } catch (langchainError) {
+          console.warn('LangChain processing failed, falling back to direct API:', langchainError.message);
+          throw langchainError; // This will trigger the fallback below
+        }
+      } else {
+        // Fallback to direct API calls
+        console.log('Using direct OpenAI API calls (LangChain not available)...');
+        
+        // Format the prompt with the content
+        const formattedPrompt = promptTemplate.replace('{content}', content);
+        
+        console.log(`Calling ${provider} API with model: ${modelName} via direct API...`);
+        
+        // Call OpenAI API directly
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: modelName,
+            messages: [
+              {
+                role: 'user',
+                content: formattedPrompt
+              }
+            ],
+            temperature: temperature,
+            max_tokens: maxTokens
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.text();
+          throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
+        }
+
+        const data = await response.json();
+        processedContent = data.choices[0].message.content;
+        processingMethod = 'Direct API';
+        
+        console.log(`Direct API processing completed successfully with ${provider}/${modelName}`);
+      }
 
       return {
         statusCode: 200,
@@ -163,9 +222,10 @@ Enhanced version:`
         body: JSON.stringify({
           success: true,
           processedContent,
-          promptUsed: `${promptType} processing with LangChain`,
+          promptUsed: `${promptType} processing with ${processingMethod}`,
           modelUsed: modelName,
           provider: provider,
+          processingMethod: processingMethod,
           temperature: temperature,
           maxTokens: maxTokens
         })
@@ -210,9 +270,10 @@ Enhanced version:`
         body: JSON.stringify({
           success: true,
           processedContent: fallbackContent,
-          promptUsed: `${promptType} processing (fallback mode - LangChain unavailable)`,
+          promptUsed: `${promptType} processing (fallback mode)`,
           modelUsed: 'fallback',
-          warning: 'LangChain processing failed, using fallback processing'
+          processingMethod: 'Template Fallback',
+          warning: 'LLM processing failed, using template-based fallback'
         })
       };
     }
