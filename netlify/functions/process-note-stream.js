@@ -1,8 +1,5 @@
-// LangChain processing function for Netlify
-import { ChatOpenAI } from '@langchain/openai';
-import { PromptTemplate } from 'langchain/prompts';
-
-export const handler = async (event, context) => {
+// OpenAI processing function for Netlify
+exports.handler = async (event, context) => {
   console.log('Processing function called:', {
     method: event.httpMethod,
     body: event.body,
@@ -120,31 +117,44 @@ Enhanced version:`
     };
 
     try {
-      // Initialize the LLM
-      const llm = new ChatOpenAI({
-        openAIApiKey: openaiApiKey,
-        modelName: 'gpt-3.5-turbo',
-        temperature: 0.7,
-        maxTokens: 1000
-      });
-
       // Get the appropriate prompt template
       const promptTemplate = promptTemplates[promptType] || promptTemplates.default;
-      
-      // Create the prompt
-      const prompt = PromptTemplate.fromTemplate(promptTemplate);
-      
+
       // Format the prompt with the content
-      const formattedPrompt = await prompt.format({ content });
-      
+      const formattedPrompt = promptTemplate.replace('{content}', content);
+
       console.log('Calling OpenAI API...');
-      
-      // Call the LLM
-      const response = await llm.invoke(formattedPrompt);
-      const processedContent = response.content;
-      
+
+      // Call OpenAI API directly
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'user',
+              content: formattedPrompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 1000
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
+      }
+
+      const data = await response.json();
+      const processedContent = data.choices[0].message.content;
+
       console.log('OpenAI processing completed successfully');
-      
+
       return {
         statusCode: 200,
         headers,
@@ -154,14 +164,14 @@ Enhanced version:`
           promptUsed: `${promptType} processing with OpenAI GPT-3.5-turbo`
         })
       };
-      
+
     } catch (llmError) {
       console.error('Error in LLM processing:', llmError);
-      
+
       // Fallback to simple processing if LLM fails
       console.log('Falling back to simple processing...');
       let fallbackContent;
-      
+
       switch (promptType) {
         case 'diary':
           fallbackContent = `**Enhanced Diary Entry**\n\n${content}\n\n*This entry has been enhanced for better flow and readability while maintaining your personal voice.*`;
@@ -187,7 +197,7 @@ Enhanced version:`
         default:
           fallbackContent = `## Enhanced Note\n\n${content}\n\n---\n\n*This note has been enhanced for better clarity and structure.*`;
       }
-      
+
       return {
         statusCode: 200,
         headers,
