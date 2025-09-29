@@ -34,9 +34,9 @@ exports.handler = async (event, context) => {
       translate: { name: 'Language Translation', description: 'Translates content to different languages while preserving meaning' },
       default: { name: 'General Note Enhancement', description: 'General purpose enhancement for any type of note' }
     };
-    
+
     console.log('Returning template types');
-    
+
     return {
       statusCode: 200,
       headers,

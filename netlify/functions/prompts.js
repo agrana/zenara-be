@@ -27,9 +27,9 @@ exports.handler = async (event, context) => {
     // For now, return empty prompts array since we don't have the full prompt management system deployed
     // This prevents the JSON parsing error in the frontend
     const prompts = [];
-    
+
     console.log('Returning empty prompts array');
-    
+
     return {
       statusCode: 200,
       headers,
