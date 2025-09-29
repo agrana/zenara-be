@@ -332,7 +332,7 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
     });
 
     try {
-      const response = await fetch('/api/process-note-stream', {
+      const response = await fetch('/.netlify/functions/process-note-stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -349,56 +349,17 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
         throw new Error('Failed to start processing');
       }
 
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response stream available');
-      }
+      // Handle non-streaming response from Netlify function
+      const result = await response.json();
 
-      const decoder = new TextDecoder();
-      let processedContent = '';
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
-
-                switch (data.type) {
-                  case 'start':
-                    set({ processingProgress: 'Starting processing...' });
-                    break;
-                  case 'chunk':
-                    processedContent += data.content;
-                    set({
-                      processingProgress: 'Processing...',
-                      processedContent
-                    });
-                    break;
-                  case 'complete':
-                    set({
-                      isProcessingStream: false,
-                      processingProgress: 'Processing complete!',
-                      processedContent
-                    });
-                    break;
-                  case 'error':
-                    throw new Error(data.error || 'Processing failed');
-                }
-              } catch (parseError) {
-                console.warn('Failed to parse SSE data:', parseError);
-              }
-            }
-          }
-        }
-      } finally {
-        reader.releaseLock();
+      if (result.success) {
+        set({
+          isProcessingStream: false,
+          processingProgress: 'Processing complete!',
+          processedContent: result.processedContent
+        });
+      } else {
+        throw new Error(result.error || 'Processing failed');
       }
     } catch (error) {
       console.error('Error in streaming processing:', error);
