@@ -70,6 +70,14 @@ export const usePromptStore = create<PromptState>()((set, get) => ({
         throw new Error('Failed to fetch prompts');
       }
 
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Prompts API returned non-JSON response, using default prompts only');
+        set({ prompts: [], isLoading: false });
+        return;
+      }
+
       const prompts = await response.json();
       set({ prompts, isLoading: false });
     } catch (error) {
@@ -129,6 +137,24 @@ export const usePromptStore = create<PromptState>()((set, get) => ({
           return;
         }
         throw new Error('Failed to fetch template types');
+      }
+
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Template types API returned non-JSON response, using default types');
+        const defaultTypes = {
+          diary: { name: 'Diary Enhancement', description: 'Improves grammar, flow, and adds descriptive language while maintaining personal tone' },
+          meeting: { name: 'Meeting Notes Organization', description: 'Structures meeting notes with clear headings, action items, and key decisions' },
+          braindump: { name: 'Brain Dump Organization', description: 'Categorizes thoughts into logical groups and creates clear structure' },
+          brainstorm: { name: 'Brainstorm Enhancement', description: 'Expands on ideas, adds variations, and suggests implementation steps' },
+          summary: { name: 'Content Summarization', description: 'Creates concise summaries while preserving key information' },
+          expand: { name: 'Content Expansion', description: 'Expands brief content with more detail, examples, and context' },
+          translate: { name: 'Language Translation', description: 'Translates content to different languages while preserving meaning' },
+          default: { name: 'General Note Enhancement', description: 'General purpose enhancement for any type of note' }
+        };
+        set({ templateTypes: defaultTypes, isLoading: false });
+        return;
       }
 
       const templateTypes = await response.json();
