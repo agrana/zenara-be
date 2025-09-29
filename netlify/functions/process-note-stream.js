@@ -38,9 +38,9 @@ export const handler = async (event, context) => {
     console.log('Parsing request body...');
     const body = event.body ? JSON.parse(event.body) : {};
     const { content, promptType = 'default' } = body;
-    
+
     console.log('Request data:', { content: content?.substring(0, 100), promptType });
-    
+
     if (!content || typeof content !== 'string') {
       console.log('Content validation failed');
       return {
@@ -50,8 +50,35 @@ export const handler = async (event, context) => {
       };
     }
 
-    // Simple processing logic for now
-    const processedContent = `Processed with ${promptType}: ${content}`;
+    // Simple processing logic for now - this will be replaced with actual LangChain integration
+    let processedContent;
+    
+    switch (promptType) {
+      case 'diary':
+        processedContent = `**Enhanced Diary Entry**\n\n${content}\n\n*This entry has been enhanced for better flow and readability while maintaining your personal voice.*`;
+        break;
+      case 'meeting':
+        processedContent = `## Meeting Notes\n\n**Key Points:**\n${content}\n\n**Action Items:**\n- [ ] To be determined\n\n**Next Steps:**\n- To be determined`;
+        break;
+      case 'braindump':
+        processedContent = `## Organized Thoughts\n\n${content}\n\n---\n\n**Categories:**\n- Ideas\n- Tasks\n- Questions\n- Notes`;
+        break;
+      case 'brainstorm':
+        processedContent = `## Brainstorming Session\n\n**Original Ideas:**\n${content}\n\n**Expanded Ideas:**\n- [Original idea] + variations and implementation steps\n\n**Next Actions:**\n- Research feasibility\n- Create implementation plan`;
+        break;
+      case 'summary':
+        processedContent = `## Summary\n\n**Key Points:**\n${content}\n\n**Main Takeaways:**\n- [Key insight 1]\n- [Key insight 2]\n- [Key insight 3]`;
+        break;
+      case 'expand':
+        processedContent = `## Expanded Content\n\n**Original:**\n${content}\n\n**Expanded Version:**\nThis is an expanded version of your content with additional details, examples, and context to provide a more comprehensive understanding of the topic.`;
+        break;
+      case 'translate':
+        processedContent = `## Translated Content\n\n**Original:**\n${content}\n\n**Translation:**\n[This would be the translated version of your content]`;
+        break;
+      default:
+        processedContent = `## Enhanced Note\n\n${content}\n\n---\n\n*This note has been enhanced for better clarity and structure.*`;
+    }
+    
     console.log('Processing completed successfully');
 
     return {
@@ -68,9 +95,9 @@ export const handler = async (event, context) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         error: 'Failed to process note',
-        details: error.message 
+        details: error.message
       })
     };
   }
