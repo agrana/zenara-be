@@ -420,8 +420,8 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
 
     try {
       const { format } = get();
-      
-      const response = await fetch('/api/note-versions', {
+
+      const response = await fetch('/.netlify/functions/note-versions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -456,8 +456,8 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
 
     set({ isLoadingVersions: true, versionError: null });
     try {
-      const response = await fetch(`/api/note-versions/${noteId}?userId=${user.id}`);
-      
+      const response = await fetch(`/.netlify/functions/note-versions?noteId=${noteId}&userId=${user.id}`);
+
       if (!response.ok) {
         throw new Error('Failed to fetch versions');
       }
@@ -508,7 +508,7 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
     if (!user) return;
 
     try {
-      const response = await fetch(`/api/note-versions/${versionId}?userId=${user.id}`, {
+      const response = await fetch(`/.netlify/functions/note-versions?versionId=${versionId}&userId=${user.id}`, {
         method: 'DELETE',
       });
 
