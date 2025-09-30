@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ProcessingService } from "./processingService";
 import { PromptService } from "./promptService";
+import { NoteVersionService } from "./noteVersionService";
 import OpenAI from "openai";
 import { z } from "zod";
 import type { InsertTask, InsertPomodoroSession, InsertScratchpad, InsertSettings } from "@shared/schema";
@@ -255,6 +256,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error saving scratchpad:', error);
       res.status(500).json({ error: 'Failed to save scratchpad' });
+    }
+  });
+
+  // Note Versions API routes
+  app.get('/api/note-versions/:noteId', async (req, res) => {
+    try {
+      const { noteId } = req.params;
+      const { userId, limit } = req.query;
+
+      if (!userId) {
+        return res.status(400).json({ error: 'userId is required' });
+      }
+
+      const versionService = NoteVersionService.getInstance();
+      const versions = limit
+        ? await versionService.getLatestVersions(noteId, userId as string, parseInt(limit as string))
+        : await versionService.getVersionsByNoteId(noteId, userId as string);
+
+      res.json(versions);
+    } catch (error) {
+      console.error('Error fetching note versions:', error);
+      res.status(500).json({ error: 'Failed to fetch note versions' });
+    }
+  });
+
+  app.get('/api/note-versions/version/:versionId', async (req, res) => {
+    try {
+      const { versionId } = req.params;
+      const { userId } = req.query;
+
+      if (!userId) {
+        return res.status(400).json({ error: 'userId is required' });
+      }
+
+      const versionService = NoteVersionService.getInstance();
+      const version = await versionService.getVersionById(versionId, userId as string);
+
+      if (!version) {
+        return res.status(404).json({ error: 'Version not found' });
+      }
+
+      res.json(version);
+    } catch (error) {
+      console.error('Error fetching note version:', error);
+      res.status(500).json({ error: 'Failed to fetch note version' });
+    }
+  });
+
+  app.post('/api/note-versions', async (req, res) => {
+    try {
+      const { noteId, userId, title, content, format, isProcessed, processingMetadata } = req.body;
+
+      if (!noteId || !userId || !title || !content || !format) {
+        return res.status(400).json({ error: 'noteId, userId, title, content, and format are required' });
+      }
+
+      const versionService = NoteVersionService.getInstance();
+      const version = await versionService.createVersion({
+        noteId,
+        userId,
+        title,
+        content,
+        format,
+        isProcessed,
+        processingMetadata
+      });
+
+      res.status(201).json(version);
+    } catch (error) {
+      console.error('Error creating note version:', error);
+      res.status(500).json({ error: 'Failed to create note version' });
+    }
+  });
+
+  app.delete('/api/note-versions/:versionId', async (req, res) => {
+    try {
+      const { versionId } = req.params;
+      const { userId } = req.query;
+
+      if (!userId) {
+        return res.status(400).json({ error: 'userId is required' });
+      }
+
+      const versionService = NoteVersionService.getInstance();
+      await versionService.deleteVersion(versionId, userId as string);
+
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting note version:', error);
+      res.status(500).json({ error: 'Failed to delete note version' });
+    }
+  });
+
+  app.delete('/api/note-versions/note/:noteId', async (req, res) => {
+    try {
+      const { noteId } = req.params;
+      const { userId } = req.query;
+
+      if (!userId) {
+        return res.status(400).json({ error: 'userId is required' });
+      }
+
+      const versionService = NoteVersionService.getInstance();
+      await versionService.deleteVersionsByNoteId(noteId, userId as string);
+
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting note versions:', error);
+      res.status(500).json({ error: 'Failed to delete note versions' });
     }
   });
 
