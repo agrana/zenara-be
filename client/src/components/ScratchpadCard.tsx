@@ -13,6 +13,7 @@ import '@uiw/react-md-editor/markdown-editor.css?v=2';
 import '@uiw/react-markdown-preview/markdown.css?v=2';
 import styles from './ScratchpadCard.module.css';
 import ScratchpadList from './ScratchpadList';
+import { VersionHistory } from './VersionHistory';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import React from 'react';
@@ -439,6 +440,10 @@ export default function ScratchpadCard() {
                   )}
                   Process
                 </Button>
+
+                {currentNote && (
+                  <VersionHistory noteId={currentNote.id} />
+                )}
 
                 {currentNote && (
                   <Button
