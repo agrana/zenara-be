@@ -112,7 +112,7 @@ export class NoteVersionService {
         throw error;
       }
 
-      return versions ? versions.map(v => this.mapToNoteVersion(v)) : [];
+      return versions ? versions.map((v: any) => this.mapToNoteVersion(v)) : [];
     } catch (error) {
       console.error('Error in getVersionsByNoteId:', error);
       throw error;
@@ -203,7 +203,7 @@ export class NoteVersionService {
         throw error;
       }
 
-      return versions ? versions.map(v => this.mapToNoteVersion(v)) : [];
+      return versions ? versions.map((v: any) => this.mapToNoteVersion(v)) : [];
     } catch (error) {
       console.error('Error in getLatestVersions:', error);
       throw error;
