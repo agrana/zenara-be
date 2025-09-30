@@ -118,18 +118,18 @@ Enhanced version:`
 
     try {
       // Get configuration from environment variables
-      const modelName = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+      const modelName = process.env.OPENAI_MODEL || 'gpt-5-mini';
       const temperature = parseFloat(process.env.LLM_TEMPERATURE || '0.7');
       const maxTokens = parseInt(process.env.LLM_MAX_TOKENS || '1000');
-      
+
       // Get the appropriate prompt template
       const promptTemplate = promptTemplates[promptType] || promptTemplates.default;
-      
+
       // Format the prompt with the content
       const formattedPrompt = promptTemplate.replace('{content}', content);
-      
+
       console.log(`Calling OpenAI API with model: ${modelName}...`);
-      
+
       // Call OpenAI API directly
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -157,7 +157,7 @@ Enhanced version:`
 
       const data = await response.json();
       const processedContent = data.choices[0].message.content;
-      
+
       console.log(`OpenAI processing completed successfully with ${modelName}`);
 
       return {
