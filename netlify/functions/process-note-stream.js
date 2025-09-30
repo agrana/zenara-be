@@ -118,7 +118,7 @@ Enhanced version:`
 
     try {
       // Get configuration from environment variables
-      const modelName = process.env.OPENAI_MODEL || 'gpt-5-mini';
+      const modelName = process.env.OPENAI_MODEL || 'gpt-4o-mini';
       const temperature = parseFloat(process.env.LLM_TEMPERATURE || '0.7');
       const maxTokens = parseInt(process.env.LLM_MAX_TOKENS || '1000');
 
@@ -129,6 +129,8 @@ Enhanced version:`
       const formattedPrompt = promptTemplate.replace('{content}', content);
 
       console.log(`Calling OpenAI API with model: ${modelName}...`);
+      console.log('API Key present:', !!openaiApiKey);
+      console.log('Prompt length:', formattedPrompt.length);
 
       // Call OpenAI API directly
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -152,6 +154,12 @@ Enhanced version:`
 
       if (!response.ok) {
         const errorData = await response.text();
+        console.error('OpenAI API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+          model: modelName
+        });
         throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
       }
 
