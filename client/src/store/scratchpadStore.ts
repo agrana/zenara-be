@@ -11,6 +11,24 @@ export interface Note {
   updated_at: string;
 }
 
+export interface NoteVersion {
+  id: string;
+  noteId: string;
+  userId: string;
+  title: string;
+  content: string;
+  format: string;
+  versionNumber: number;
+  isProcessed: boolean;
+  processingMetadata?: {
+    model?: string;
+    promptType?: string;
+    provider?: string;
+    temperature?: number;
+  };
+  createdAt: string;
+}
+
 export interface ScratchpadState {
   notes: Note[];
   currentNote: Note | null;
@@ -29,6 +47,11 @@ export interface ScratchpadState {
   isProcessingStream: boolean;
   processingProgress: string;
   processingError: string | null;
+
+  // Versioning state
+  versions: NoteVersion[];
+  isLoadingVersions: boolean;
+  versionError: string | null;
 
   // Actions
   fetchNotes: () => Promise<void>;
@@ -50,6 +73,13 @@ export interface ScratchpadState {
   // Processing actions
   processContentStream: (content: string, promptType?: string, customPrompt?: string, promptId?: string) => Promise<void>;
   setProcessingError: (error: string | null) => void;
+
+  // Versioning actions
+  createVersion: (noteId: string, title: string, content: string, isProcessed?: boolean, processingMetadata?: any) => Promise<void>;
+  fetchVersions: (noteId: string) => Promise<void>;
+  restoreVersion: (version: NoteVersion) => Promise<void>;
+  deleteVersion: (versionId: string) => Promise<void>;
+  setVersionError: (error: string | null) => void;
 
   // Format templates
   getFormatTemplate: (format: FormatType) => string;
@@ -73,6 +103,11 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
   isProcessingStream: false,
   processingProgress: '',
   processingError: null,
+
+  // Versioning state
+  versions: [],
+  isLoadingVersions: false,
+  versionError: null,
 
   fetchNotes: async () => {
     set({ isLoading: true, error: null });
@@ -127,6 +162,9 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
         currentNote: data,
         isLoading: false
       });
+
+      // Create a version after successful save
+      await get().createVersion(id, title, content);
     } catch (error) {
       set({ error: 'Failed to update note', isLoading: false });
       console.error('Error updating note:', error);
@@ -370,5 +408,121 @@ export const useScratchpadStore = create<ScratchpadState>()((set, get) => ({
     }
   },
 
-  setProcessingError: (error) => set({ processingError: error })
+  setProcessingError: (error) => set({ processingError: error }),
+
+  // Versioning functions
+  createVersion: async (noteId: string, title: string, content: string, isProcessed = false, processingMetadata?: any) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error('No user found for creating version');
+      return;
+    }
+
+    try {
+      const { format } = get();
+      
+      const response = await fetch('/api/note-versions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          noteId,
+          userId: user.id,
+          title,
+          content,
+          format,
+          isProcessed,
+          processingMetadata
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create version');
+      }
+
+      // Optionally refresh versions list if we're viewing this note's versions
+      const currentVersions = get().versions;
+      if (currentVersions.length > 0 && currentVersions[0]?.noteId === noteId) {
+        await get().fetchVersions(noteId);
+      }
+    } catch (error) {
+      console.error('Error creating version:', error);
+      set({ versionError: error instanceof Error ? error.message : 'Failed to create version' });
+    }
+  },
+
+  fetchVersions: async (noteId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    set({ isLoadingVersions: true, versionError: null });
+    try {
+      const response = await fetch(`/api/note-versions/${noteId}?userId=${user.id}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch versions');
+      }
+
+      const versions = await response.json();
+      set({ versions, isLoadingVersions: false });
+    } catch (error) {
+      console.error('Error fetching versions:', error);
+      set({
+        versionError: error instanceof Error ? error.message : 'Failed to fetch versions',
+        isLoadingVersions: false
+      });
+    }
+  },
+
+  restoreVersion: async (version: NoteVersion) => {
+    try {
+      // Update the current note with the version content
+      if (get().currentNote?.id === version.noteId) {
+        set({
+          currentNote: {
+            ...get().currentNote!,
+            title: version.title,
+            content: version.content,
+          }
+        });
+      }
+
+      // Save the restored content as the current version
+      await get().updateNote(version.noteId, version.title, version.content);
+
+      // Create a new version marking this as a restore
+      await get().createVersion(
+        version.noteId,
+        version.title,
+        version.content,
+        false,
+        { restoredFrom: version.id, restoredFromVersion: version.versionNumber }
+      );
+    } catch (error) {
+      console.error('Error restoring version:', error);
+      set({ versionError: error instanceof Error ? error.message : 'Failed to restore version' });
+    }
+  },
+
+  deleteVersion: async (versionId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    try {
+      const response = await fetch(`/api/note-versions/${versionId}?userId=${user.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete version');
+      }
+
+      // Remove from local state
+      set({ versions: get().versions.filter(v => v.id !== versionId) });
+    } catch (error) {
+      console.error('Error deleting version:', error);
+      set({ versionError: error instanceof Error ? error.message : 'Failed to delete version' });
+    }
+  },
+
+  setVersionError: (error) => set({ versionError: error })
 }));
