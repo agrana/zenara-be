@@ -118,7 +118,7 @@ Enhanced version:`
 
     try {
       // Get configuration from environment variables
-      const modelName = process.env.OPENAI_MODEL || 'gpt-5-mini';
+      const modelName = process.env.OPENAI_MODEL || 'gpt-4o-mini';
       const temperature = parseFloat(process.env.LLM_TEMPERATURE || '0.7');
       const maxTokens = parseInt(process.env.LLM_MAX_TOKENS || '1000');
 
